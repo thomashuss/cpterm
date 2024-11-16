@@ -800,15 +800,17 @@ public class CPTerm
                     cleanable.add(path);
                 }
                 isTemp = true;
-                return path = Files.createTempFile("cpterm_", suffix);
+                path = Files.createTempFile("cpterm_", suffix);
             } else {
                 if (!isTemp && path != null && prefix.equals(lastPrefix)) {
                     cleanable.add(path);
                 }
                 isTemp = false;
                 lastPrefix = prefix;
-                return path = Path.of(prefix + suffix);
+                path = Path.of(prefix + suffix);
             }
+            logger.info("Using scratch file {}", path);
+            return path;
         }
 
         /**
