@@ -25,6 +25,9 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * Writes the HTML to a file without converting anything, besides optionally rendering SVGs and cleaning up the HTML.
+ */
 public class RawHtmlConverter
         implements Converter
 {
@@ -35,6 +38,10 @@ public class RawHtmlConverter
     {
     }
 
+    /**
+     * Set the behavior for handling SVGs in documents.
+     * @param renderSvg true if SVG should be rendered to an image
+     */
     public void setRenderSvg(boolean renderSvg)
     {
         this.renderSvg = renderSvg;

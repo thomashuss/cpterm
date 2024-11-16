@@ -22,6 +22,9 @@ import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * A {@link Converter} which writes the HTML to a temporary file before calling the external converter on that file.
+ */
 public abstract class TempFileExternalConverter
         extends ExternalConverter
 {
