@@ -257,6 +257,10 @@ public class CPTerm
      */
     private final Path programDir;
     /**
+     * Default converter as set in properties.
+     */
+    private final Converter defaultConverter;
+    /**
      * Active {@code WebDriver} instance; effectively final.
      */
     WebDriver driver;
@@ -327,6 +331,17 @@ public class CPTerm
                 logger.info("Created configuration file with defaults at {}", propertiesFile);
             }
         }
+
+        defaultConverter = switch (prop.getProperty(DEFAULT_PROBLEM_CONVERTER)) {
+            case OPEN_HTML_TO_PDF -> Converter.OPEN_HTML_TO_PDF;
+            case PANDOC -> configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
+            case LIBREOFFICE -> configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH, LIBREOFFICE_ARGS);
+            case RAW_HTML -> {
+                Converter.RAW_HTML.setRenderSvg(Boolean.parseBoolean(prop.getProperty(RAW_HTML_SHOULD_RENDER_SVG)));
+                yield Converter.RAW_HTML;
+            }
+            default -> null;
+        };
     }
 
     @SuppressWarnings("unchecked")
@@ -342,12 +357,10 @@ public class CPTerm
      * @param pathKey   preferences key for executable path
      * @param argsKey   preferences key for command line arguments
      * @return {@code converter}, for convenience
-     * @throws InvalidPrefsException if the executable path is not set
      */
     private ExternalConverter configExternalConverter(ExternalConverter converter,
                                                       String pathKey,
                                                       String argsKey)
-    throws InvalidPrefsException
     {
         String path;
         String args;
@@ -357,36 +370,9 @@ public class CPTerm
         try {
             converter.setExePath(path.isEmpty() ? null : Path.of(path));
         } catch (IllegalArgumentException e) {
-            throw new InvalidPrefsException(e.getMessage());
+            return null;
         }
         return converter;
-    }
-
-    /**
-     * Configure and return the default {@link Converter}.
-     *
-     * @return a converter
-     * @throws MissingPrefsException if the default problem converter is not set
-     * @throws InvalidPrefsException if the set value for the default problem converter is not recognized
-     */
-    private Converter getConverter()
-    throws MissingPrefsException, InvalidPrefsException
-    {
-        String defaultConverter;
-        defaultConverter = prop.getProperty(DEFAULT_PROBLEM_CONVERTER);
-        if (defaultConverter.isEmpty()) {
-            throw new MissingPrefsException(DEFAULT_PROBLEM_CONVERTER);
-        }
-        return switch (defaultConverter) {
-            case OPEN_HTML_TO_PDF -> Converter.OPEN_HTML_TO_PDF;
-            case PANDOC -> configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
-            case LIBREOFFICE -> configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH, LIBREOFFICE_ARGS);
-            case RAW_HTML -> {
-                Converter.RAW_HTML.setRenderSvg(Boolean.parseBoolean(prop.getProperty(RAW_HTML_SHOULD_RENDER_SVG)));
-                yield Converter.RAW_HTML;
-            }
-            default -> throw new InvalidPrefsException(DEFAULT_PROBLEM_CONVERTER);
-        };
     }
 
     /**
@@ -541,16 +527,18 @@ public class CPTerm
      * The user has indicated that a problem is currently loaded in the browser, so create the files, open
      * them, and listen for changes.
      *
-     * @throws PrefsException if there is a problem with the configuration for the default problem converter
+     * @throws InvalidPrefsException if there is a problem with the configuration for the default problem converter
      */
     public void startProblem()
-    throws PrefsException
+    throws InvalidPrefsException
     {
         if (!ready) return;
 
         driverExe.submit(browserWindow::hide);
+        if (defaultConverter == null) {
+            throw new InvalidPrefsException(DEFAULT_PROBLEM_CONVERTER);
+        }
         Future<?> pf = exe.submit(() -> {
-            Converter pe = getConverter();
             Path pp;
             try {
                 pp = problemFile.create(prop.getProperty(PROBLEM_FILE_SUFFIX));
@@ -569,7 +557,7 @@ public class CPTerm
                 return null;
             }
             try {
-                pe.convert(problem, url, pp.toAbsolutePath());
+                defaultConverter.convert(problem, url, pp.toAbsolutePath());
                 problemFile.open();
             } catch (ConversionException ignored) {
             }
@@ -600,9 +588,6 @@ public class CPTerm
             cf.get();
             pf.get();
         } catch (InterruptedException | ExecutionException e) {
-            if (e.getCause() instanceof PrefsException pe) {
-                throw pe;
-            }
             throw new RuntimeException(e);
         }
     }

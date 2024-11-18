@@ -33,7 +33,6 @@ public abstract class ExternalConverter
 {
     protected static final Logger logger = LoggerFactory.getLogger(ExternalConverter.class);
     protected final ArrayList<String> args = new ArrayList<>(0);
-    private final StringBuilder argBuf = new StringBuilder(0);
     protected String exePath;
 
     protected static void logError(int code, BufferedReader out, BufferedReader err)
@@ -109,6 +108,7 @@ public abstract class ExternalConverter
         int argCount = 0;
         int ch;
         String word;
+        StringBuilder argBuf = new StringBuilder();
 
         while (strPos < strlen) {
             ch = argStr.codePointAt(strPos++);
@@ -134,7 +134,6 @@ public abstract class ExternalConverter
 
         if (!argBuf.isEmpty()) {
             word = argBuf.toString();
-            argBuf.setLength(0);
             if (argCount < args.size()) {
                 args.set(argCount++, word);
             } else {
