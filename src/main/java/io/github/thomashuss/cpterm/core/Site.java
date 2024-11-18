@@ -16,14 +16,11 @@
 
 package io.github.thomashuss.cpterm.core;
 
-import java.security.SecureRandom;
-
 /**
  * An interface with a challenge website.
  */
 public abstract class Site
 {
-    static final SecureRandom RANDOM = new SecureRandom();
     CPTerm driver;
 
     /**

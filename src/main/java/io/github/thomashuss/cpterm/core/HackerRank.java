@@ -18,26 +18,12 @@ package io.github.thomashuss.cpterm.core;
 
 import org.openqa.selenium.By;
 import org.openqa.selenium.JavascriptExecutor;
-import org.openqa.selenium.ScriptKey;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 
 public class HackerRank
         extends Site
 {
-    private final String editorName;
-    private ScriptKey createEditorRef;
-    private ScriptKey getEditorContents;
-    private ScriptKey setEditorContents;
-
-    public HackerRank()
-    {
-        int editorNameLen = RANDOM.nextInt(4, 16);
-        StringBuilder buf = new StringBuilder(editorNameLen);
-        for (int i = 0; i < editorNameLen; i++) {
-            buf.append((char) ((RANDOM.nextBoolean() ? 'a' : 'A') + RANDOM.nextInt(26)));
-        }
-        editorName = buf.toString();
-    }
+    private final Monaco monaco = new Monaco();
 
     @Override
     public String getUrl()
@@ -54,10 +40,7 @@ public class HackerRank
     @Override
     void onReady()
     {
-        JavascriptExecutor js = (JavascriptExecutor) driver.driver;
-        createEditorRef = js.pin("window." + editorName + "=monaco.editor.getModels()[0]");
-        getEditorContents = js.pin("return " + editorName + ".getValue()");
-        setEditorContents = js.pin(editorName + ".setValue(arguments[0])");
+        monaco.setDriver((JavascriptExecutor) driver.driver);
     }
 
     @Override
@@ -70,14 +53,13 @@ public class HackerRank
     @Override
     public String getCode()
     {
-        ((JavascriptExecutor) driver.driver).executeScript(createEditorRef);
-        return String.valueOf(((JavascriptExecutor) driver.driver).executeScript(getEditorContents));
+        return monaco.getCode();
     }
 
     @Override
     public void setCode(String code)
     {
-        ((JavascriptExecutor) driver.driver).executeScript(setEditorContents, code);
+        monaco.setCode(code);
     }
 
     @Override
