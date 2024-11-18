@@ -21,6 +21,7 @@ import io.github.thomashuss.cpterm.artifacts.code.Watcher;
 import io.github.thomashuss.cpterm.artifacts.html.ConversionException;
 import io.github.thomashuss.cpterm.artifacts.html.Converter;
 import io.github.thomashuss.cpterm.artifacts.html.ExternalConverter;
+import io.github.thomashuss.cpterm.util.BrowserWindow;
 import org.openqa.selenium.Cookie;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.chrome.ChromeDriver;
@@ -268,6 +269,10 @@ public class CPTerm
      */
     WebDriverWait wait;
     /**
+     * Browser window control.
+     */
+    private BrowserWindow browserWindow;
+    /**
      * Used for opening files.
      */
     private Desktop desktop;
@@ -450,6 +455,7 @@ public class CPTerm
             r.run();
             options = driver.manage();
             wait = new WebDriverWait(driver, Duration.ofSeconds(30));
+            browserWindow = BrowserWindow.of(driver);
         };
     }
 
@@ -508,6 +514,30 @@ public class CPTerm
     }
 
     /**
+     * Whether the browser window (not the browser itself) can be controlled; e.g., it can be shown or hidden.
+     *
+     * @return true if window can be controlled
+     */
+    public boolean supportsWindowControl()
+    {
+        return browserWindow != null;
+    }
+
+    /**
+     * Toggle visibility of the browser window, if this functionality is supported.
+     */
+    public void toggleWindow()
+    {
+        if (browserWindow != null) {
+            if (browserWindow.isVisible()) {
+                driverExe.submit(browserWindow::hide);
+            } else {
+                driverExe.submit(browserWindow::show);
+            }
+        }
+    }
+
+    /**
      * The user has indicated that a problem is currently loaded in the browser, so create the files, open
      * them, and listen for changes.
      *
@@ -517,6 +547,8 @@ public class CPTerm
     throws PrefsException
     {
         if (!ready) return;
+
+        driverExe.submit(browserWindow::hide);
         Future<?> pf = exe.submit(() -> {
             Converter pe = getConverter();
             Path pp;
@@ -581,6 +613,7 @@ public class CPTerm
     public void endProblem()
     {
         if (!ready) return;
+        driverExe.submit(browserWindow::show);
         exe.submit(() -> {
             codeFileWatcher.stop();
             codeFile.clean();
