@@ -7,9 +7,9 @@
         "esModuleInterop": true,
         "moduleResolution": "node",
         "sourceMap": true,
-        "baseUrl": "./src",
+        "baseUrl": "./src"
     },
     "include": [
         "src/**/*"
-    ],
+    ]
 }
