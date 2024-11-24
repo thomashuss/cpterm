@@ -91,6 +91,7 @@ class NativeMessagingInputStream
         return ret;
     }
 
+    @SuppressWarnings("StatementWithEmptyBody")
     @Override
     public void close()
     throws IOException
