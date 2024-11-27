@@ -1,6 +1,5 @@
 {
   "devDependencies": {
-    "@types/firefox-webext-browser": "^120.0.4",
     "@types/webextension-polyfill": "^0.12.1",
     "ts-loader": "^9.5.1",
     "webpack": "^5.96.1",
