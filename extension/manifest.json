@@ -15,7 +15,8 @@
   "background": {
     "scripts": [
       "background.js"
-    ]
+    ],
+    "service_worker": "background.js"
   },
   "content_scripts": [
     {
@@ -27,6 +28,9 @@
       ]
     }
   ],
+  "options_ui": {
+    "page": "options.html"
+  },
   "web_accessible_resources": [
     {
       "resources": [
@@ -40,7 +44,8 @@
   "permissions": [
     "nativeMessaging",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "storage"
   ],
   "host_permissions": [
     "*://*.hackerrank.com/*"

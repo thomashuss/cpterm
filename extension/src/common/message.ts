@@ -19,7 +19,6 @@ export const KEEP_ALIVE = "keepAlive";
 export const LOG_ENTRY = "logEntry";
 export const NEW_PROBLEM = "newProblem";
 export const SET_CODE = "setCode";
-export const SET_PREFS = "setPrefs";
 
 export interface Message {
     readonly type: string;
@@ -62,13 +61,4 @@ export class NewProblem implements Message {
 
 export interface SetCode extends Message {
     readonly code: string;
-}
-
-export class SetPrefs implements Message {
-    readonly type = SET_PREFS;
-    readonly prefs: object;
-
-    constructor(prefs: object) {
-        this.prefs = prefs;
-    }
 }

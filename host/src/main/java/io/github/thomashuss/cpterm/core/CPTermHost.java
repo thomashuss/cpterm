@@ -184,7 +184,7 @@ public class CPTermHost
     /**
      * Default converter as set in properties.
      */
-    private Converter defaultConverter;
+    private Converter defaultConverter = Converter.OPEN_HTML_TO_PDF;
     /**
      * Used for opening files.
      */
@@ -277,6 +277,7 @@ public class CPTermHost
         try {
             converter.setExePath(path.isEmpty() ? null : Path.of(path));
         } catch (IllegalArgumentException e) {
+            logger.error("Invalid path", e);
             return null;
         }
         return converter;
@@ -289,6 +290,7 @@ public class CPTermHost
     {
         if (defaultConverter == null) {
             err("Default problem converter is improperly configured", null);
+            logger.info("Problem converter is set to {}", prop.getProperty(DEFAULT_PROBLEM_CONVERTER));
             return;
         }
 

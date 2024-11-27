@@ -14,11 +14,10 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Command, LogEntry, Message, SetPrefs, COMMAND, KEEP_ALIVE } from "../common/message";
+import { Command, LogEntry, Message, COMMAND, KEEP_ALIVE } from "../common/message";
 import browser from "webextension-polyfill";
 
 const NATIVE_NAME = "cpterm_host";
-const PREFS = new SetPrefs({});
 
 /**
  * Abstracts away the maintenance of a native messaging connection.
@@ -32,10 +31,6 @@ export class HostInterface {
         this.nativePort = null;
         this.quitTimeout = null;
         this.csPorts = new Set<browser.Runtime.Port>();
-    }
-
-    private static getPrefs(): SetPrefs {
-        return PREFS;
     }
 
     /**
@@ -75,7 +70,7 @@ export class HostInterface {
      * @param cs browser port from which the request originated; used for registering callbacks
      * @returns non-null port
      */
-    private ensurePort(cs: browser.Runtime.Port): browser.Runtime.Port {
+    private async ensurePort(cs: browser.Runtime.Port): Promise<browser.Runtime.Port> {
         if (!this.csPorts.has(cs)) {
             this.csPorts.add(cs);
             cs.onDisconnect.addListener(this.onCSDisconnect.bind(this));
@@ -85,10 +80,23 @@ export class HostInterface {
             this.nativePort = browser.runtime.connectNative(NATIVE_NAME);
             this.nativePort.onDisconnect.addListener(this.onNativePortDisconnect.bind(this));
             this.nativePort.onMessage.addListener(this.postToCS.bind(this));
-            this.nativePort.postMessage(HostInterface.getPrefs());
+            const prefs = await browser.storage.local.get(null);
+            if (Object.keys(prefs).length != 0) {
+                this.nativePort.postMessage({ type: "setPrefs", prefs: prefs });
+            }
         }
 
         return this.nativePort;
+    }
+
+    public updatePrefs(changes: browser.Storage.StorageAreaOnChangedChangesType) {
+        if (this.nativePort != null) {
+            const p: Record<string, string> = {};
+            for (const change of Object.keys(changes)) {
+                p[change] = changes[change].newValue as string || "";
+            }
+            this.nativePort.postMessage({ type: "setPrefs", prefs: p });
+        }
     }
 
     /**
@@ -98,7 +106,7 @@ export class HostInterface {
      */
     public postMessage(cs: browser.Runtime.Port, message: Message) {
         if (!(this.unsetQuitTimeout() && message.type === COMMAND && (message as Command).command === KEEP_ALIVE)) {
-            this.ensurePort(cs).postMessage(message);
+            this.ensurePort(cs).then((p) => p.postMessage(message));
         }
     }
 

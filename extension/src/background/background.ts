@@ -20,6 +20,7 @@ import { HostInterface } from "./host-interface";
 
 const host = new HostInterface();
 
+browser.storage.local.onChanged.addListener((c) => host.updatePrefs(c));
 browser.runtime.onConnect.addListener((contentPort) =>
     contentPort.onMessage.addListener((u) =>
         host.postMessage(contentPort, u as Message)));
