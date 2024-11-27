@@ -39,10 +39,26 @@ function firstAttrByClassName(className: string, attr: (e: Element) => string | 
  * Get and set contents of the problem.
  */
 interface Scraper {
+    /**
+     * Whether the current page is a problem page.
+     */
     isProblem(): boolean;
+    /**
+     * Get the problem code.
+     */
     getCode(): string;
+    /**
+     * Set the problem code.
+     * @param code new code
+     */
     setCode(code: string): void;
+    /**
+     * Get the problem statement.
+     */
     getProblem(): string;
+    /**
+     * Get the name of the problem's language.
+     */
     getLanguage(): string;
 }
 
@@ -69,21 +85,12 @@ interface MonacoWindow {
  * A scraper for a website which uses the monaco editor.
  */
 abstract class HasMonaco implements Scraper {
-    private monaco: Monaco | null;
-
-    constructor() {
-        this.monaco = null;
-    }
-
     /**
      * Get the monaco reference from the page.
      * @returns monaco reference or null if global monaco object not present
      */
-    private ensureMonaco(): Monaco | null {
-        if (this.monaco == null) {
-            this.monaco = (window as unknown as MonacoWindow).monaco?.editor.getModels()[0] || null;
-        }
-        return this.monaco;
+    private ensureMonaco(): Monaco | undefined {
+        return (window as unknown as MonacoWindow).monaco?.editor.getModels()[0];
     }
 
     public getCode(): string {
@@ -92,13 +99,6 @@ abstract class HasMonaco implements Scraper {
 
     public setCode(code: string): void {
         this.ensureMonaco()!.setValue(code);
-    }
-
-    /**
-     * Delete the monaco reference.
-     */
-    public disposeMonaco() {
-        this.monaco = null;
     }
 
     abstract isProblem(): boolean;
@@ -163,31 +163,28 @@ function sendProblem(scraper: Scraper): boolean {
     return false;
 }
 
-function init() {
-    const scraper = getScraper();
-    if (scraper != null) {
-        // keep nm host alive in case the kill timer is set
-        document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, { detail: M_KEEP_ALIVE }));
-        registerBackgroundListener(scraper);
+const scraper = getScraper();
+if (scraper != null) {
+    // keep nm host alive in case the kill timer is set
+    document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, { detail: M_KEEP_ALIVE }));
+    registerBackgroundListener(scraper);
 
-        let oldPathname = location.pathname;
-        let sentProblem = false;
-        // watch for changes that may indicate a new problem was opened
-        new MutationObserver(() => {
-            // check if navigated to new page without reloading
-            if (location.pathname !== oldPathname) {
-                oldPathname = location.pathname;
-                sentProblem = false;
-                if (scraper instanceof HasMonaco) {
-                    scraper.disposeMonaco();
-                }
-            }
+    // watch for changes that may indicate a new problem was opened
+    const observer = new MutationObserver(() => {
+        if (scraper.isProblem() && sendProblem(scraper)) {
+            observer.disconnect();
+        }
+    });
 
-            if (!sentProblem && scraper.isProblem() && sendProblem(scraper)) {
-                sentProblem = true;
-            }
-        }).observe(document.body, { childList: true, subtree: true });
-    }
+    const button = document.createElement("button");
+    button.style.position = "fixed";
+    button.style.left = button.style.top = "0px";
+    button.style.zIndex = "1000";
+    button.innerText = "Open problem";
+    button.addEventListener("click", () => {
+        if (!scraper.isProblem() || !sendProblem(scraper)) {
+            observer.observe(document.body, { childList: true, subtree: true });
+        }
+    });
+    document.body.appendChild(button);
 }
-
-init();
