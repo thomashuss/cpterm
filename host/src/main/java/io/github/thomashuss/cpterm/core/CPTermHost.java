@@ -21,7 +21,6 @@ import io.github.thomashuss.cpterm.artifacts.code.Watcher;
 import io.github.thomashuss.cpterm.artifacts.html.ConversionException;
 import io.github.thomashuss.cpterm.artifacts.html.Converter;
 import io.github.thomashuss.cpterm.artifacts.html.ExternalConverter;
-import io.github.thomashuss.cpterm.core.message.Command;
 import io.github.thomashuss.cpterm.core.message.LogEntry;
 import io.github.thomashuss.cpterm.core.message.Message;
 import io.github.thomashuss.cpterm.core.message.NewProblem;
@@ -331,6 +330,7 @@ public class CPTermHost
      */
     public void quit()
     {
+        logger.info("Quitting gracefully");
         if (codeFileWatcher != null) {
             codeFileWatcher.stop();
         }
@@ -377,9 +377,7 @@ public class CPTermHost
     @Override
     public boolean received(Message message)
     {
-        if (message instanceof Command c) {
-            return !"quit".equals(c.getCommand());
-        } else if (message instanceof NewProblem np) {
+        if (message instanceof NewProblem np) {
             startProblem(np);
         } else if (message instanceof SetPrefs sp) {
             setPrefs(sp.getPrefs());

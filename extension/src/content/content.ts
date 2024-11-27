@@ -18,6 +18,9 @@ import browser from "webextension-polyfill";
 import { LOG_ENTRY, LogEntry, Message, SET_CODE } from "../common/message";
 import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
 
+/**
+ * A closure which guarantees a background script connection.
+ */
 const ensureBackground = (function() {
     let background: browser.Runtime.Port | null = null;
     return () => {
@@ -25,27 +28,26 @@ const ensureBackground = (function() {
             background = browser.runtime.connect({ name: "cpterm-cs-bg" });
             background.onMessage.addListener((u) => {
                 if ((u as Message).type === LOG_ENTRY) {
+                    // log entries could be from the nm host or bg script
                     let le = u as LogEntry;
                     if (le.messageType === "error") {
                         alert(le.message);
                     } else {
                         console.log(le.message);
                     }
-                }
-            });
-            background.onMessage.addListener((u) => {
-                if ((u as Message).type === SET_CODE) {
+                } else if ((u as Message).type === SET_CODE) {
                     document.dispatchEvent(new CustomEvent(TO_CPTERM_SCRAPER, { detail: JSON.stringify(u) }));
                 }
             });
-            background.onDisconnect.addListener(() => {
-                background = null;
-            });
+            background.onDisconnect.addListener(() => background = null);
         }
         return background;
     };
 })();
 
+/**
+ * Inject the scraper script.
+ */
 function inject() {
     let script = document.createElement("script");
     script.src = browser.runtime.getURL("scraper.js");
@@ -53,6 +55,7 @@ function inject() {
     script.onload = () => {
         document.addEventListener(FROM_CPTERM_SCRAPER, (e) => {
             if (e instanceof CustomEvent) {
+                // everything from the scraper can go to the bg script
                 ensureBackground().postMessage(JSON.parse(e.detail));
             }
         });

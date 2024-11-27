@@ -21,13 +21,12 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
 
 @JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
 @JsonSubTypes({
-        @JsonSubTypes.Type(value = Command.class, name = "command"),
         @JsonSubTypes.Type(value = LogEntry.class, name = "logEntry"),
         @JsonSubTypes.Type(value = NewProblem.class, name = "newProblem"),
         @JsonSubTypes.Type(value = SetCode.class, name = "setCode"),
         @JsonSubTypes.Type(value = SetPrefs.class, name = "setPrefs")
 })
 public abstract sealed class Message
-        permits Command, LogEntry, NewProblem, SetCode, SetPrefs
+        permits LogEntry, NewProblem, SetCode, SetPrefs
 {
 }

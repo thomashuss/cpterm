@@ -15,49 +15,44 @@
  */
 
 export const COMMAND = "command";
-export const QUIT = "quit";
 export const KEEP_ALIVE = "keepAlive";
 export const LOG_ENTRY = "logEntry";
 export const NEW_PROBLEM = "newProblem";
 export const SET_CODE = "setCode";
 export const SET_PREFS = "setPrefs";
 
-export abstract class Message {
+export interface Message {
     readonly type: string;
-
-    constructor(type: string) {
-        this.type = type;
-    }
 }
 
-export class Command extends Message {
+export class Command implements Message {
+    readonly type = COMMAND;
     readonly command: string;
 
     constructor(command: string) {
-        super(COMMAND);
         this.command = command;
     }
 }
 
-export class LogEntry extends Message {
+export class LogEntry implements Message {
+    readonly type = LOG_ENTRY;
     readonly messageType: string = "";
     readonly message: string = "";
 
     constructor(messageType: string, message: string) {
-        super(LOG_ENTRY);
         this.messageType = messageType;
         this.message = message;
     }
 }
 
-export class NewProblem extends Message {
+export class NewProblem implements Message {
+    readonly type = NEW_PROBLEM;
     readonly problem: string;
     readonly code: string;
     readonly language: string;
     readonly url: string;
 
     constructor(problem: string, code: string, language: string, url: string) {
-        super(NEW_PROBLEM);
         this.problem = problem;
         this.code = code;
         this.language = language;
@@ -65,15 +60,15 @@ export class NewProblem extends Message {
     }
 }
 
-export class SetCode extends Message {
-    readonly code: string = "";
+export interface SetCode extends Message {
+    readonly code: string;
 }
 
-export class SetPrefs extends Message {
+export class SetPrefs implements Message {
+    readonly type = SET_PREFS;
     readonly prefs: object;
 
     constructor(prefs: object) {
-        super(SET_PREFS);
         this.prefs = prefs;
     }
 }

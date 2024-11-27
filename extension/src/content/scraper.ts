@@ -19,6 +19,13 @@ import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
 
 const M_KEEP_ALIVE = JSON.stringify(new Command(KEEP_ALIVE));
 
+/**
+ * Return the attr function evaluated with the first element matching the class name,
+ * or an empty string if no match.
+ * @param className class name to match
+ * @param attr gets the desired attribute
+ * @returns value of attr
+ */
 function firstAttrByClassName(className: string, attr: (e: Element) => string | null): string {
     const l = document.getElementsByClassName(className);
     if (l.length > 0) {
@@ -28,6 +35,9 @@ function firstAttrByClassName(className: string, attr: (e: Element) => string | 
     }
 }
 
+/**
+ * Get and set contents of the problem.
+ */
 interface Scraper {
     isProblem(): boolean;
     getCode(): string;
@@ -36,11 +46,17 @@ interface Scraper {
     getLanguage(): string;
 }
 
+/**
+ * A single monaco editor.
+ */
 interface Monaco {
     getValue(): string;
     setValue(value: string): void;
 }
 
+/**
+ * Extension of the window object which has the global monaco.
+ */
 interface MonacoWindow {
     monaco: {
         editor: {
@@ -49,6 +65,9 @@ interface MonacoWindow {
     } | undefined;
 }
 
+/**
+ * A scraper for a website which uses the monaco editor.
+ */
 abstract class HasMonaco implements Scraper {
     private monaco: Monaco | null;
 
@@ -56,6 +75,10 @@ abstract class HasMonaco implements Scraper {
         this.monaco = null;
     }
 
+    /**
+     * Get the monaco reference from the page.
+     * @returns monaco reference or null if global monaco object not present
+     */
     private ensureMonaco(): Monaco | null {
         if (this.monaco == null) {
             this.monaco = (window as unknown as MonacoWindow).monaco?.editor.getModels()[0] || null;
@@ -71,6 +94,9 @@ abstract class HasMonaco implements Scraper {
         this.ensureMonaco()!.setValue(code);
     }
 
+    /**
+     * Delete the monaco reference.
+     */
     public disposeMonaco() {
         this.monaco = null;
     }
@@ -94,6 +120,10 @@ class HackerRank extends HasMonaco {
     }
 }
 
+/**
+ * Determine the best scraper to use on this page.
+ * @returns scraper or null if no scraper will work
+ */
 function getScraper(): Scraper | null {
     if (location.hostname.indexOf("hackerrank.com") != -1) {
         return new HackerRank();
@@ -101,6 +131,10 @@ function getScraper(): Scraper | null {
     return null;
 }
 
+/**
+ * Register the listener for background script messages.
+ * @param scraper used to set code on change
+ */
 function registerBackgroundListener(scraper: Scraper) {
     document.addEventListener(TO_CPTERM_SCRAPER, (e) => {
         if (e instanceof CustomEvent) {
@@ -112,8 +146,14 @@ function registerBackgroundListener(scraper: Scraper) {
     });
 }
 
+/**
+ * Send the current problem to the content script.
+ * @param scraper used to get the problem
+ * @returns true if the problem was sent
+ */
 function sendProblem(scraper: Scraper): boolean {
     const p = scraper.getProblem(), c = scraper.getCode(), l = scraper.getLanguage();
+    // check if the page is ready
     if (p.length > 0 && c.length > 0) {
         document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, {
             detail: JSON.stringify(new NewProblem(p, c, l, location.href))
@@ -126,12 +166,15 @@ function sendProblem(scraper: Scraper): boolean {
 function init() {
     const scraper = getScraper();
     if (scraper != null) {
+        // keep nm host alive in case the kill timer is set
         document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, { detail: M_KEEP_ALIVE }));
         registerBackgroundListener(scraper);
 
         let oldPathname = location.pathname;
         let sentProblem = false;
+        // watch for changes that may indicate a new problem was opened
         new MutationObserver(() => {
+            // check if navigated to new page without reloading
             if (location.pathname !== oldPathname) {
                 oldPathname = location.pathname;
                 sentProblem = false;

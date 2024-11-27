@@ -14,11 +14,10 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Command, LogEntry, Message, QUIT as M_QUIT, SetPrefs, COMMAND, KEEP_ALIVE } from "../common/message";
+import { Command, LogEntry, Message, SetPrefs, COMMAND, KEEP_ALIVE } from "../common/message";
 import browser from "webextension-polyfill";
 
 const NATIVE_NAME = "cpterm_host";
-const QUIT = new Command(M_QUIT);
 const PREFS = new SetPrefs({});
 
 /**
@@ -27,54 +26,65 @@ const PREFS = new SetPrefs({});
 export class HostInterface {
     private nativePort: browser.Runtime.Port | null;
     private quitTimeout: any | null;
-    private origins: Set<browser.Runtime.Port>;
+    private csPorts: Set<browser.Runtime.Port>;
 
     constructor() {
         this.nativePort = null;
         this.quitTimeout = null;
-        this.origins = new Set<browser.Runtime.Port>();
+        this.csPorts = new Set<browser.Runtime.Port>();
     }
 
     private static getPrefs(): SetPrefs {
         return PREFS;
     }
 
-    private postToOrigin(message: any) {
-        this.origins.forEach((o) => o.postMessage(message));
+    /**
+     * Post the object as a message to all open CS ports.
+     * @param message to post
+     */
+    private postToCS(message: any) {
+        this.csPorts.forEach((o) => o.postMessage(message));
     }
 
+    /**
+     * Event handler for native port disconnect.
+     * @param nativePort disconnected native port
+     */
     private onNativePortDisconnect(nativePort: browser.Runtime.Port) {
         if (this.nativePort == nativePort) {
             this.nativePort = null;
         }
         if (nativePort.error) {
-            this.postToOrigin(new LogEntry("error", nativePort.error.message));
+            this.postToCS(new LogEntry("error", nativePort.error.message));
         }
     }
 
-    private onOriginDisconnect(origin: browser.Runtime.Port) {
-        this.origins.delete(origin);
-        if (this.origins.size == 0) {
+    /**
+     * Event handler for a browser CS port disconnect.
+     * @param cs disconnected CS port
+     */
+    private onCSDisconnect(cs: browser.Runtime.Port) {
+        this.csPorts.delete(cs);
+        if (this.csPorts.size == 0) {
             this.end();
         }
     }
 
     /**
      * If the port is not open, open it.
-     * 
-     * @param origin browser port from which the request originated; used for registering callbacks
+     * @param cs browser port from which the request originated; used for registering callbacks
      * @returns non-null port
      */
-    private ensurePort(origin: browser.Runtime.Port): browser.Runtime.Port {
-        if (!this.origins.has(origin)) {
-            this.origins.add(origin);
-            origin.onDisconnect.addListener(this.onOriginDisconnect.bind(this));
+    private ensurePort(cs: browser.Runtime.Port): browser.Runtime.Port {
+        if (!this.csPorts.has(cs)) {
+            this.csPorts.add(cs);
+            cs.onDisconnect.addListener(this.onCSDisconnect.bind(this));
         }
 
         if (this.nativePort == null) {
             this.nativePort = browser.runtime.connectNative(NATIVE_NAME);
             this.nativePort.onDisconnect.addListener(this.onNativePortDisconnect.bind(this));
-            this.nativePort.onMessage.addListener(this.postToOrigin.bind(this));
+            this.nativePort.onMessage.addListener(this.postToCS.bind(this));
             this.nativePort.postMessage(HostInterface.getPrefs());
         }
 
@@ -83,26 +93,38 @@ export class HostInterface {
 
     /**
      * Post a message to the native messaging host, starting the host if it's not running.
-     * 
-     * @param origin browser port from which the request originated; used for registering callbacks
+     * @param cs browser port from which the request originated; used for registering callbacks
      * @param message message
      */
-    public postMessage(origin: browser.Runtime.Port, message: Message) {
-        if (this.quitTimeout != null) {
-            clearTimeout(this.quitTimeout);
-            if (message.type === COMMAND && (message as Command).command === KEEP_ALIVE) {
-                this.setQuitTimeout();
-                return;
-            }
+    public postMessage(cs: browser.Runtime.Port, message: Message) {
+        if (!(this.unsetQuitTimeout() && message.type === COMMAND && (message as Command).command === KEEP_ALIVE)) {
+            this.ensurePort(cs).postMessage(message);
         }
-        this.ensurePort(origin).postMessage(message);
     }
 
+    /**
+     * Stop the timer to end the host process, if the timer is set.
+     * @returns true if the timer was running and stopped
+     */
+    private unsetQuitTimeout(): boolean {
+        if (this.quitTimeout != null) {
+            clearTimeout(this.quitTimeout);
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Start a timer to end the host process.
+     */
     private setQuitTimeout() {
         this.quitTimeout = setTimeout(() => {
-            this.nativePort?.postMessage(QUIT);
-            this.nativePort = null;
-        }, 60000);
+            try {
+                this.nativePort?.disconnect();
+            } finally {
+                this.nativePort = null;
+            }
+        }, 10000);
     }
 
     /**
