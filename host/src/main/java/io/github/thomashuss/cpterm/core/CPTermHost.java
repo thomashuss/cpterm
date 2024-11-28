@@ -135,6 +135,23 @@ public class CPTermHost
      */
     private static final String DEFAULT_PROBLEM_FILE_SUFFIX = ".pdf";
     /**
+     * Preferences key for the flag indicating whether to render problem statements.
+     */
+    private static final String RENDER_PROBLEM = "render_problem";
+    /**
+     * Default value for the flag indicating whether to render problem statements.
+     */
+    private static final String DEFAULT_RENDER_PROBLEM = "true";
+    /**
+     * Preferences key for the flag indicating whether to re-generate the problem statement
+     * if the same problem is submitted twice.
+     */
+    private static final String RELOAD_PROBLEM = "reload_problem";
+    /**
+     * Default behavior for reloading the same problem.
+     */
+    private static final String DEFAULT_RELOAD_PROBLEM = "false";
+    /**
      * Preferences key for the default text editor.
      */
     private static final String EDITOR = "editor";
@@ -161,6 +178,8 @@ public class CPTermHost
         DEFAULTS.setProperty(PROBLEM_USE_TEMP_FILE, DEFAULT_PROBLEM_USE_TEMP_FILE);
         DEFAULTS.setProperty(PROBLEM_VIEWER, "");
         DEFAULTS.setProperty(RAW_HTML_SHOULD_RENDER_SVG, DEFAULT_RAW_HTML_SHOULD_RENDER_SVG);
+        DEFAULTS.setProperty(RELOAD_PROBLEM, DEFAULT_RELOAD_PROBLEM);
+        DEFAULTS.setProperty(RENDER_PROBLEM, DEFAULT_RENDER_PROBLEM);
     }
 
     /**
@@ -197,6 +216,10 @@ public class CPTermHost
      * Currently used file watcher.
      */
     private CodeFileWatcher codeFileWatcher;
+    /**
+     * URL of last generated problem file.
+     */
+    private String lastUrl;
 
     public CPTermHost()
     {
@@ -245,16 +268,18 @@ public class CPTermHost
     public void setPrefs(Map<String, String> p)
     {
         prop.putAll(p);
-        defaultConverter = switch (prop.getProperty(DEFAULT_PROBLEM_CONVERTER)) {
-            case OPEN_HTML_TO_PDF -> Converter.OPEN_HTML_TO_PDF;
-            case PANDOC -> configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
-            case LIBREOFFICE -> configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH, LIBREOFFICE_ARGS);
-            case RAW_HTML -> {
-                Converter.RAW_HTML.setRenderSvg(Boolean.parseBoolean(prop.getProperty(RAW_HTML_SHOULD_RENDER_SVG)));
-                yield Converter.RAW_HTML;
-            }
-            default -> null;
-        };
+        if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM))) {
+            defaultConverter = switch (prop.getProperty(DEFAULT_PROBLEM_CONVERTER)) {
+                case OPEN_HTML_TO_PDF -> Converter.OPEN_HTML_TO_PDF;
+                case PANDOC -> configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
+                case LIBREOFFICE -> configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH, LIBREOFFICE_ARGS);
+                case RAW_HTML -> {
+                    Converter.RAW_HTML.setRenderSvg(Boolean.parseBoolean(prop.getProperty(RAW_HTML_SHOULD_RENDER_SVG)));
+                    yield Converter.RAW_HTML;
+                }
+                default -> null;
+            };
+        }
     }
 
     /**
@@ -300,19 +325,24 @@ public class CPTermHost
         codeFile.clean();
         problemFile.clean();
 
-        Path pp;
-        try {
-            pp = problemFile.create(prop.getProperty(PROBLEM_FILE_SUFFIX));
-        } catch (IOException e) {
-            err("Failed to create problem file", e);
-            return;
-        }
-        try {
-            defaultConverter.convert(np.getProblem(), np.getUrl(), pp.toAbsolutePath());
-            problemFile.open();
-        } catch (ConversionException e) {
-            err("Conversion error", e);
-            return;
+        String url = np.getUrl();
+        if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
+                (!Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
+            Path pp;
+            try {
+                pp = problemFile.create(prop.getProperty(PROBLEM_FILE_SUFFIX));
+            } catch (IOException e) {
+                err("Failed to create problem file", e);
+                return;
+            }
+            try {
+                defaultConverter.convert(np.getProblem(), url, pp.toAbsolutePath());
+                problemFile.open();
+            } catch (ConversionException e) {
+                err("Conversion error", e);
+                return;
+            }
+            lastUrl = url;
         }
 
         Path cp;
