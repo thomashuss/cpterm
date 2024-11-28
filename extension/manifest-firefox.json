@@ -1,0 +1,52 @@
+{
+  "description": "Interface between competitive programming websites and your code editor",
+  "manifest_version": 3,
+  "name": "CPTerm",
+  "version": "1.0",
+  "icons": {
+    "48": "icons/message.svg"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "cpterm@thomashuss.github.io",
+      "strict_min_version": "50.0"
+    }
+  },
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "*://*.hackerrank.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
+  ],
+  "options_ui": {
+    "page": "options.html"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "scraper.js"
+      ],
+      "matches": [
+        "*://*.hackerrank.com/*"
+      ]
+    }
+  ],
+  "permissions": [
+    "nativeMessaging",
+    "scripting",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "*://*.hackerrank.com/*"
+  ]
+}
