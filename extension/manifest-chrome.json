@@ -6,12 +6,7 @@
   "icons": {
     "48": "icons/message.svg"
   },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "cpterm@thomashuss.github.io",
-      "strict_min_version": "50.0"
-    }
-  },
+  "minimum_chrome_version": "104",
   "background": {
     "service_worker": "background.js"
   },
