@@ -120,6 +120,20 @@ class HackerRank extends HasMonaco {
     }
 }
 
+class LeetCode extends HasMonaco {
+    isProblem(): boolean {
+        return location.pathname.match(/\/problems\/.+\/description/) != null;
+    }
+
+    getProblem(): string {
+        return document.querySelector("div[data-track-load='description_content']")?.outerHTML || "";
+    }
+
+    getLanguage(): string {
+        return (document.querySelector("#editor button:has(div svg[data-icon*='down'])") as HTMLElement)?.innerText || "";
+    }
+}
+
 /**
  * Determine the best scraper to use on this page.
  * @returns scraper or null if no scraper will work
@@ -127,6 +141,8 @@ class HackerRank extends HasMonaco {
 function getScraper(): Scraper | null {
     if (location.hostname.indexOf("hackerrank.com") != -1) {
         return new HackerRank();
+    } else if (location.hostname.indexOf("leetcode.com") != -1) {
+        return new LeetCode();
     }
     return null;
 }
@@ -169,13 +185,6 @@ if (scraper != null) {
     document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, { detail: M_KEEP_ALIVE }));
     registerBackgroundListener(scraper);
 
-    // watch for changes that may indicate a new problem was opened
-    const observer = new MutationObserver(() => {
-        if (scraper.isProblem() && sendProblem(scraper)) {
-            observer.disconnect();
-        }
-    });
-
     const button = document.createElement("button");
     button.style.position = "fixed";
     button.style.left = button.style.top = "0px";
@@ -183,6 +192,12 @@ if (scraper != null) {
     button.innerText = "Open problem";
     button.addEventListener("click", () => {
         if (!scraper.isProblem() || !sendProblem(scraper)) {
+            // watch for changes that may indicate a new problem was opened
+            const observer = new MutationObserver(() => {
+                if (scraper.isProblem() && sendProblem(scraper)) {
+                    observer.disconnect();
+                }
+            });
             observer.observe(document.body, { childList: true, subtree: true });
         }
     });

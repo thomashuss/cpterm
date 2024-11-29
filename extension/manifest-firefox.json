@@ -20,7 +20,8 @@
   "content_scripts": [
     {
       "matches": [
-        "*://*.hackerrank.com/*"
+        "*://*.hackerrank.com/*",
+        "*://*.leetcode.com/*"
       ],
       "js": [
         "content.js"
@@ -36,7 +37,8 @@
         "scraper.js"
       ],
       "matches": [
-        "*://*.hackerrank.com/*"
+        "*://*.hackerrank.com/*",
+        "*://*.leetcode.com/*"
       ]
     }
   ],
@@ -47,6 +49,7 @@
     "storage"
   ],
   "host_permissions": [
-    "*://*.hackerrank.com/*"
+        "*://*.hackerrank.com/*",
+        "*://*.leetcode.com/*"
   ]
 }
