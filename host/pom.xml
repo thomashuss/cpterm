@@ -84,7 +84,6 @@
     </dependencies>
 
     <build>
-        <finalName>cpterm-host-${project.version}</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -110,8 +109,6 @@
                             <mainClass>io.github.thomashuss.cpterm.CPTerm</mainClass>
                         </manifest>
                     </archive>
-                    <finalName>cpterm-host</finalName>
-                    <appendAssemblyId>false</appendAssemblyId>
                 </configuration>
                 <executions>
                     <execution>
