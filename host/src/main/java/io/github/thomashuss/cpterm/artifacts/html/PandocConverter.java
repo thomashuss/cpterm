@@ -33,14 +33,14 @@ public class PandocConverter
         extends PipedExternalConverter
 {
     private static final Map<String, String> REPLACE = new HashMap<>(2);
+    private static final Pattern REPLACE_PATTERN;
 
     static {
         REPLACE.put("≤", "$\\leq$");
         REPLACE.put("≥", "$\\geq$");
+        REPLACE_PATTERN = Pattern.compile(
+                REPLACE.keySet().stream().reduce("(", (r, s) -> r.length() == 1 ? r + s : r + "|" + s) + ")");
     }
-
-    private static final Pattern REPLACE_PATTERN = Pattern.compile(
-            REPLACE.keySet().stream().reduce("(", (r, s) -> r.length() == 1 ? r + s : r + "|" + s) + ")");
 
     PandocConverter()
     {
