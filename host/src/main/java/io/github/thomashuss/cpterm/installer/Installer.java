@@ -3,7 +3,10 @@ package io.github.thomashuss.cpterm.installer;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -127,16 +130,32 @@ public class Installer
     throws IOException
     {
         Path bin;
+        File binFile;
         if (WINDOWS) {
             bin = dir.resolve("cpterm-host.bat");
-            Files.writeString(bin, "@echo off\n" + JAVA_OPTS + " \"%~dp0/"
-                    + jar.getFileName().toString() + "\" %*");
+            binFile = bin.toFile();
+            try (FileOutputStream fos = new FileOutputStream(binFile);
+                 PrintWriter pw = new PrintWriter(fos)) {
+                pw.println("@echo off");
+                pw.print(JAVA_OPTS);
+                pw.print(" \"%~dp0/");
+                pw.print(jar.getFileName());
+                pw.println("\" %*");
+            }
         } else {
             bin = dir.resolve("cpterm-host");
-            Files.writeString(bin, "#!/bin/sh\nexec " + JAVA_OPTS + " '"
-                    + jar.toAbsolutePath().toString().replace("'", "'\"'\"'") + "'");
+            binFile = bin.toFile();
+            try (FileOutputStream fos = new FileOutputStream(binFile);
+            PrintWriter pw = new PrintWriter(fos)) {
+                pw.println("#!/bin/sh");
+                pw.print("exec ");
+                pw.print(JAVA_OPTS);
+                pw.print(" '");
+                pw.print(jar.toAbsolutePath().toString().replace("'", "'\"'\"'"));
+                pw.println('\'');
+            }
         }
-        if (!bin.toFile().setExecutable(true)) {
+        if (!binFile.setExecutable(true)) {
             throw new RuntimeException("Could not mark executable");
         }
         return bin;
