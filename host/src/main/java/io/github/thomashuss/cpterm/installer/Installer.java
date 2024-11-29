@@ -19,6 +19,8 @@ public class Installer
 {
     private static final boolean MAC;
     private static final boolean WINDOWS;
+    private static final String JAR_NAME = "cpterm-host.jar";
+    private static final String INSTALLATION_FILE_NAME = ".cpterm_install.json";
     private static final String MANIFEST_NAME = "io.github.thomashuss.CPTerm";
     private static final String MANIFEST_FNAME = MANIFEST_NAME + ".json";
     private static final String DESCRIPTION = "Allows the CPTerm extension to read and write scratch files";
@@ -28,6 +30,7 @@ public class Installer
     private static final String CHROME_REG_KEY = "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\" + MANIFEST_NAME;
     private static final String JAVA_OPTS = "java -Xmx256m -jar";
     private static final ObjectMapper mapper = new ObjectMapper();
+    private static final Path JAR;
 
     static {
         String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
@@ -41,45 +44,71 @@ public class Installer
             MAC = false;
             WINDOWS = false;
         }
+
+        Path jar;
+        try {
+            jar = Paths.get(Installer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            if (!jar.toString().endsWith(".jar")) {
+                jar = null;
+            }
+        } catch (URISyntaxException e) {
+            jar = null;
+        }
+        JAR = jar;
+    }
+
+    private final Path dir;
+    private final Installation installation = new Installation();
+
+    private Installer(Path dir)
+    {
+        this.dir = dir;
     }
 
     private static Path getJar()
     {
-        Path jar;
-        try {
-            jar = Paths.get(Installer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
-        } catch (URISyntaxException e) {
-            throw new RuntimeException(e);
-        }
-        if (!jar.toString().endsWith(".jar")) {
+        if (JAR == null) {
             throw new RuntimeException("Not currently running from a jar");
         }
-        return jar;
+        return JAR;
     }
 
-    private static void writeManifest(Path bin, String extId, Path manifest)
-    throws IOException
-    {
-        ObjectNode root = mapper.createObjectNode();
-        root.put("name", MANIFEST_NAME);
-        root.put("description", DESCRIPTION);
-        root.put("path", bin.toAbsolutePath().toString());
-        root.put("type", "stdio");
-        root.set("allowed_extensions", mapper.createArrayNode().add(extId));
-        mapper.writeValue(manifest.toFile(), root);
-    }
-
-    private static void putWinReg(String key, String value)
+    private void putWinReg(String key, String value)
     throws IOException
     {
         try {
-            new ProcessBuilder("reg", "add", key, "/ve", "/t", "REG_SZ", "/d", value, "/f").start().waitFor();
+            new ProcessBuilder("REG", "ADD", key, "/ve", "/t", "REG_SZ", "/d", value, "/f").start().waitFor();
+            installation.addReg(key);
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
     }
 
-    private static void installFirefox(Path dir, Path bin)
+    private static void delWinReg(String key)
+    throws IOException
+    {
+        try {
+            new ProcessBuilder("REG", "DELETE", key).start().waitFor();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
+    private void writeManifest(Path bin, String extId, Path manifest)
+    throws IOException
+    {
+        ObjectNode root = mapper.createObjectNode();
+        File manifestFile = manifest.toFile();
+        root.put("name", MANIFEST_NAME);
+        root.put("description", DESCRIPTION);
+        root.put("path", bin.toAbsolutePath().toString());
+        root.put("type", "stdio");
+        root.set("allowed_extensions", mapper.createArrayNode().add(extId));
+        mapper.writeValue(manifestFile, root);
+        installation.addFile(manifestFile);
+    }
+
+    private void installFirefox(Path bin)
     throws IOException
     {
         if (WINDOWS) {
@@ -95,7 +124,7 @@ public class Installer
         }
     }
 
-    private static void installChrome(Path dir, Path bin)
+    private void installChrome(Path bin)
     throws IOException
     {
         if (WINDOWS) {
@@ -111,7 +140,7 @@ public class Installer
         }
     }
 
-    private static void installChromium(Path dir, Path bin)
+    private void installChromium(Path bin)
     throws IOException
     {
         if (WINDOWS) {
@@ -127,7 +156,7 @@ public class Installer
         }
     }
 
-    private static Path createBin(Path dir, Path jar)
+    private Path createBin(Path jar)
     throws IOException
     {
         Path bin;
@@ -156,24 +185,69 @@ public class Installer
                 pw.println('\'');
             }
         }
+        installation.addFile(binFile);
         if (!binFile.setExecutable(true)) {
             throw new RuntimeException("Could not mark executable");
         }
         return bin;
     }
 
-    public static void install(Path dir, List<Browser> browsers)
+    private void installFor(List<Browser> browsers)
     throws IOException
     {
         Files.createDirectories(dir);
         Path currentJar = getJar();
-        Path bin = createBin(dir,
-                Files.copy(currentJar, dir.resolve(currentJar.getFileName()), StandardCopyOption.REPLACE_EXISTING));
+        Path newJar = Files.copy(currentJar, dir.resolve(JAR_NAME), StandardCopyOption.REPLACE_EXISTING);
+        File installationFile = newJar.getParent().resolve(INSTALLATION_FILE_NAME).toFile();
+        Path bin = createBin(newJar);
 
         for (Browser b : browsers) {
-            if (b == Browser.FIREFOX) installFirefox(dir, bin);
-            else if (b == Browser.CHROME) installChrome(dir, bin);
-            else if (b == Browser.CHROMIUM) installChromium(dir, bin);
+            if (b == Browser.FIREFOX) installFirefox(bin);
+            else if (b == Browser.CHROME) installChrome(bin);
+            else if (b == Browser.CHROMIUM) installChromium(bin);
         }
+
+        installation.addFile(installationFile);
+        mapper.writeValue(installationFile, installation);
+    }
+
+    public static Path getInstallationFilePath()
+    {
+        if (JAR != null) {
+            Path ret = JAR.getParent().resolve(INSTALLATION_FILE_NAME);
+            if (Files.exists(ret)) {
+                return ret;
+            }
+        }
+        return null;
+    }
+
+    public static boolean uninstall(Path installFile)
+    throws IOException
+    {
+        boolean deleted = true;
+        Installation installation = mapper.readValue(installFile.toFile(), Installation.class);
+        List<File> files = installation.getFiles();
+        List<String> regs = installation.getRegs();
+        if (files != null) {
+            for (File file : files) {
+                if (!file.delete()) {
+                    deleted = false;
+                }
+            }
+        }
+        if (regs != null) {
+            for (String reg : regs) {
+                delWinReg(reg);
+            }
+        }
+        Files.delete(installFile);
+        return deleted;
+    }
+
+    public static void install(Path dir, List<Browser> browsers)
+    throws IOException
+    {
+        new Installer(dir).installFor(browsers);
     }
 }

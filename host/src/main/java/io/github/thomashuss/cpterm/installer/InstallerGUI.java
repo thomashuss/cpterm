@@ -8,6 +8,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.Dimension;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,7 +18,7 @@ public class InstallerGUI
     private static final Dimension SPACER = new Dimension(0, 5);
     private static final String[] OPTIONS = {"Cancel", "Install"};
 
-    public static void prompt()
+    private static void promptInstall()
     {
         JPanel rootPanel = new JPanel();
         rootPanel.setLayout(new BoxLayout(rootPanel, BoxLayout.PAGE_AXIS));
@@ -65,14 +66,52 @@ public class InstallerGUI
                 }
                 try {
                     Installer.install(Paths.get(locationField.getText()), b);
-                    JOptionPane.showMessageDialog(null, "Installation succeeded.  You may delete the installer.",
+                    JOptionPane.showMessageDialog(null,
+                            "Installation succeeded.  You may delete the installer.",
                             null, JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception e) {
-                    JOptionPane.showMessageDialog(null, "Installation failed.\n\n" + e,
+                    JOptionPane.showMessageDialog(null,
+                            "Installation failed.\n\n" + e,
                             null, JOptionPane.ERROR_MESSAGE);
                 }
                 break;
             }
+        }
+    }
+
+    private static boolean promptUninstall()
+    {
+        Path installationFile = Installer.getInstallationFilePath();
+        if (installationFile != null) {
+            if (JOptionPane.showOptionDialog(null,
+                    "An existing installation was found.  Would you like to remove it?",
+                    null, JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE,
+                    null, null, null) == JOptionPane.YES_OPTION) {
+                try {
+                    if (Installer.uninstall(installationFile)) {
+                        JOptionPane.showMessageDialog(null,
+                                "Uninstallation succeeded.  You may delete the folder containing the installation.",
+                                null, JOptionPane.INFORMATION_MESSAGE);
+                    } else {
+                        JOptionPane.showMessageDialog(null,
+                                "Some files could not be deleted.",
+                                null, JOptionPane.ERROR_MESSAGE);
+                    }
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null,
+                            "Uninstallation failed.\n\n" + e,
+                            null, JOptionPane.ERROR_MESSAGE);
+                }
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static void prompt()
+    {
+        if (!promptUninstall()) {
+            promptInstall();
         }
     }
 }
