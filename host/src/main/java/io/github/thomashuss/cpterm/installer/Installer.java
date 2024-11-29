@@ -78,7 +78,7 @@ public class Installer
     throws IOException
     {
         try {
-            new ProcessBuilder("REG", "DELETE", key).start().waitFor();
+            new ProcessBuilder("REG", "DELETE", key, "/f").start().waitFor();
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -252,14 +252,11 @@ public class Installer
         Path newJar = Files.copy(currentJar, dir.resolve(JAR_NAME), StandardCopyOption.REPLACE_EXISTING);
         File installationFile = newJar.getParent().resolve(INSTALLATION_FILE_NAME).toFile();
         Path bin = createBin(newJar);
-
         for (Browser b : browsers) {
             if (b == Browser.FIREFOX) installFirefox(bin);
             else if (b == Browser.CHROME) installChrome(bin);
             else if (b == Browser.CHROMIUM) installChromium(bin);
         }
-
-        installation.addFile(installationFile);
         mapper.writeValue(installationFile, installation);
     }
 }
