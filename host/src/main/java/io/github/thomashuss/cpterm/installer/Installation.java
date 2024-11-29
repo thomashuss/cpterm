@@ -4,7 +4,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class Installation {
+public final class Installation
+{
     private List<File> files;
     private List<String> regs;
 

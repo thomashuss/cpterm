@@ -35,7 +35,7 @@ public class InstallerGUI
         rootPanel.add(Box.createRigidArea(SPACER));
 
         rootPanel.add(new JLabel("Select the install location:"));
-        JTextField locationField = new JTextField();
+        JTextField locationField = new JTextField(Installer.getDefaultDir().toString());
         rootPanel.add(locationField);
 
         boolean ff, chrome, chromium;

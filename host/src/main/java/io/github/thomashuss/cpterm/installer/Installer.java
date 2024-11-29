@@ -29,6 +29,7 @@ public class Installer
     private static final String FIREFOX_REG_KEY = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\" + MANIFEST_NAME;
     private static final String CHROME_REG_KEY = "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\" + MANIFEST_NAME;
     private static final String JAVA_OPTS = "java -Xmx256m -jar";
+    private static final String HOME = System.getProperty("user.home");
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Path JAR;
 
@@ -73,22 +74,73 @@ public class Installer
         return JAR;
     }
 
+    private static void delWinReg(String key)
+    throws IOException
+    {
+        try {
+            new ProcessBuilder("REG", "DELETE", key).start().waitFor();
+        } catch (InterruptedException e) {
+            throw new IOException(e);
+        }
+    }
+
+    public static Path getInstallationFilePath()
+    {
+        if (JAR != null) {
+            Path ret = JAR.getParent().resolve(INSTALLATION_FILE_NAME);
+            if (Files.exists(ret)) {
+                return ret;
+            }
+        }
+        return null;
+    }
+
+    public static boolean uninstall(Path installFile)
+    throws IOException
+    {
+        boolean deleted = true;
+        Installation installation = mapper.readValue(installFile.toFile(), Installation.class);
+        List<File> files = installation.getFiles();
+        List<String> regs = installation.getRegs();
+        if (files != null) {
+            for (File file : files) {
+                if (!file.delete()) {
+                    deleted = false;
+                }
+            }
+        }
+        if (regs != null) {
+            for (String reg : regs) {
+                delWinReg(reg);
+            }
+        }
+        Files.delete(installFile);
+        return deleted;
+    }
+
+    public static Path getDefaultDir()
+    {
+        if (WINDOWS) {
+            return Paths.get(System.getenv("LOCALAPPDATA"), "cpterm");
+        } else if (MAC) {
+            return Paths.get(HOME, "Library", "Application Support", "cpterm");
+        } else {
+            return Paths.get(HOME, ".local", "share", "cpterm");
+        }
+    }
+
+    public static void install(Path dir, List<Browser> browsers)
+    throws IOException
+    {
+        new Installer(dir).installFor(browsers);
+    }
+
     private void putWinReg(String key, String value)
     throws IOException
     {
         try {
             new ProcessBuilder("REG", "ADD", key, "/ve", "/t", "REG_SZ", "/d", value, "/f").start().waitFor();
             installation.addReg(key);
-        } catch (InterruptedException e) {
-            throw new IOException(e);
-        }
-    }
-
-    private static void delWinReg(String key)
-    throws IOException
-    {
-        try {
-            new ProcessBuilder("REG", "DELETE", key).start().waitFor();
         } catch (InterruptedException e) {
             throw new IOException(e);
         }
@@ -116,10 +168,10 @@ public class Installer
             writeManifest(bin, FIREFOX_EXT_ID, manifest);
             putWinReg(FIREFOX_REG_KEY, manifest.toString());
         } else if (MAC) {
-            writeManifest(bin, FIREFOX_EXT_ID, Paths.get(System.getProperty("user.home"), "Library",
+            writeManifest(bin, FIREFOX_EXT_ID, Paths.get(HOME, "Library",
                     "Application Support", "Mozilla", "NativeMessagingHosts", MANIFEST_FNAME));
         } else {
-            writeManifest(bin, FIREFOX_EXT_ID, Paths.get(System.getProperty("user.home"), ".mozilla",
+            writeManifest(bin, FIREFOX_EXT_ID, Paths.get(HOME, ".mozilla",
                     "native-messaging-hosts", MANIFEST_FNAME));
         }
     }
@@ -132,10 +184,10 @@ public class Installer
             writeManifest(bin, CHROME_EXT_ID, manifest);
             putWinReg(CHROME_REG_KEY, manifest.toString());
         } else if (MAC) {
-            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), "Library",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, "Library",
                     "Application Support", "Google", "Chrome", "NativeMessagingHosts", MANIFEST_FNAME));
         } else {
-            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), ".config",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, ".config",
                     "google-chrome", "NativeMessagingHosts", MANIFEST_FNAME));
         }
     }
@@ -148,10 +200,10 @@ public class Installer
             writeManifest(bin, CHROME_EXT_ID, manifest);
             putWinReg(CHROME_REG_KEY, manifest.toString());
         } else if (MAC) {
-            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), "Library",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, "Library",
                     "Application Support", "Chromium", "NativeMessagingHosts", MANIFEST_FNAME));
         } else {
-            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), ".config",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, ".config",
                     "chromium", "NativeMessagingHosts", MANIFEST_FNAME));
         }
     }
@@ -209,45 +261,5 @@ public class Installer
 
         installation.addFile(installationFile);
         mapper.writeValue(installationFile, installation);
-    }
-
-    public static Path getInstallationFilePath()
-    {
-        if (JAR != null) {
-            Path ret = JAR.getParent().resolve(INSTALLATION_FILE_NAME);
-            if (Files.exists(ret)) {
-                return ret;
-            }
-        }
-        return null;
-    }
-
-    public static boolean uninstall(Path installFile)
-    throws IOException
-    {
-        boolean deleted = true;
-        Installation installation = mapper.readValue(installFile.toFile(), Installation.class);
-        List<File> files = installation.getFiles();
-        List<String> regs = installation.getRegs();
-        if (files != null) {
-            for (File file : files) {
-                if (!file.delete()) {
-                    deleted = false;
-                }
-            }
-        }
-        if (regs != null) {
-            for (String reg : regs) {
-                delWinReg(reg);
-            }
-        }
-        Files.delete(installFile);
-        return deleted;
-    }
-
-    public static void install(Path dir, List<Browser> browsers)
-    throws IOException
-    {
-        new Installer(dir).installFor(browsers);
     }
 }
