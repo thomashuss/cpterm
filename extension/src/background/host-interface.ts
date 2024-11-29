@@ -17,7 +17,7 @@
 import { Command, LogEntry, Message, COMMAND, KEEP_ALIVE } from "../common/message";
 import browser from "webextension-polyfill";
 
-const NATIVE_NAME = "cpterm_host";
+const NATIVE_NAME = "io.github.thomashuss.CPTerm";
 
 /**
  * Abstracts away the maintenance of a native messaging connection.

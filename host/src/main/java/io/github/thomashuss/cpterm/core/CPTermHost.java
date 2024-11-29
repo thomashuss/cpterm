@@ -226,7 +226,7 @@ public class CPTermHost
         super(Message.class);
     }
 
-    public static void main(String[] args)
+    public static void run()
     throws IOException
     {
         CPTermHost h = new CPTermHost();
