@@ -37,33 +37,41 @@ public class InstallerGUI
         JTextField locationField = new JTextField();
         rootPanel.add(locationField);
 
-        boolean accepted;
-        while ((accepted = JOptionPane.showOptionDialog(null, rootPanel, "CPTerm Installer",
+        boolean ff, chrome, chromium;
+        String location;
+        while (JOptionPane.showOptionDialog(null, rootPanel, "CPTerm Installer",
                 JOptionPane.OK_CANCEL_OPTION, JOptionPane.QUESTION_MESSAGE,
-                null, OPTIONS, null) == 1) &&
-                (!firefoxCheck.isSelected() && !chromeCheck.isSelected() && !chromiumCheck.isSelected())) {
-            JOptionPane.showMessageDialog(null, "Select at least one browser.",
-                    null, JOptionPane.ERROR_MESSAGE);
-        }
-
-        if (accepted) {
-            List<Browser> b = new ArrayList<>(3);
-            if (firefoxCheck.isSelected()) {
-                b.add(Browser.FIREFOX);
-            }
-            if (chromeCheck.isSelected()) {
-                b.add(Browser.CHROME);
-            }
-            if (chromiumCheck.isSelected()) {
-                b.add(Browser.CHROMIUM);
-            }
-            try {
-                Installer.install(Path.of(locationField.getText()), b);
-                JOptionPane.showMessageDialog(null, "Installation succeeded.  You may delete the installer.",
-                        null, JOptionPane.INFORMATION_MESSAGE);
-            } catch (Exception e) {
-                JOptionPane.showMessageDialog(null, "Installation failed.\n\n" + e,
+                null, OPTIONS, null) == 1) {
+            location = locationField.getText();
+            ff = firefoxCheck.isSelected();
+            chrome = chromeCheck.isSelected();
+            chromium = chromiumCheck.isSelected();
+            if (!ff && !chrome && !chromium) {
+                JOptionPane.showMessageDialog(null, "Select at least one browser.",
                         null, JOptionPane.ERROR_MESSAGE);
+            } else if (location.isEmpty()) {
+                JOptionPane.showMessageDialog(null, "Choose an installation location.",
+                        null, JOptionPane.ERROR_MESSAGE);
+            } else {
+                List<Browser> b = new ArrayList<>((ff ? 1 : 0) + (chrome ? 1 : 0) + (chromium ? 1 : 0));
+                if (ff) {
+                    b.add(Browser.FIREFOX);
+                }
+                if (chrome) {
+                    b.add(Browser.CHROME);
+                }
+                if (chromium) {
+                    b.add(Browser.CHROMIUM);
+                }
+                try {
+                    Installer.install(Path.of(locationField.getText()), b);
+                    JOptionPane.showMessageDialog(null, "Installation succeeded.  You may delete the installer.",
+                            null, JOptionPane.INFORMATION_MESSAGE);
+                } catch (Exception e) {
+                    JOptionPane.showMessageDialog(null, "Installation failed.\n\n" + e,
+                            null, JOptionPane.ERROR_MESSAGE);
+                }
+                break;
             }
         }
     }
