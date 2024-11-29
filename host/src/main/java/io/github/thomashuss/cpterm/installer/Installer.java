@@ -234,7 +234,7 @@ public class Installer
                 pw.print(JAVA_OPTS);
                 pw.print(" '");
                 pw.print(jar.toAbsolutePath().toString().replace("'", "'\"'\"'"));
-                pw.println('\'');
+                pw.println("' \"$@\"");
             }
         }
         installation.addFile(binFile);
