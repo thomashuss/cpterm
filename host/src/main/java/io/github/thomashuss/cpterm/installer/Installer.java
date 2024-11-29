@@ -133,7 +133,7 @@ public class Installer
                     + jar.getFileName().toString() + "\" %*");
         } else {
             bin = dir.resolve("cpterm-host");
-            Files.writeString(bin, "#!/bin/sh\n" + JAVA_OPTS + " '"
+            Files.writeString(bin, "#!/bin/sh\nexec " + JAVA_OPTS + " '"
                     + jar.toAbsolutePath().toString().replace("'", "'\"'\"'") + "'");
         }
         if (!bin.toFile().setExecutable(true)) {
