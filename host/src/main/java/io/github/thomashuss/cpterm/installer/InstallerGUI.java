@@ -8,7 +8,7 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import java.awt.Dimension;
-import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -64,7 +64,7 @@ public class InstallerGUI
                     b.add(Browser.CHROMIUM);
                 }
                 try {
-                    Installer.install(Path.of(locationField.getText()), b);
+                    Installer.install(Paths.get(locationField.getText()), b);
                     JOptionPane.showMessageDialog(null, "Installation succeeded.  You may delete the installer.",
                             null, JOptionPane.INFORMATION_MESSAGE);
                 } catch (Exception e) {

@@ -20,6 +20,7 @@ import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 
 import java.nio.file.Path;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.regex.Matcher;
@@ -31,8 +32,13 @@ import java.util.regex.Pattern;
 public class PandocConverter
         extends PipedExternalConverter
 {
-    private static final Map<String, String> REPLACE = Map.of("≤", "\\$\\\\leq\\$",
-            "≥", "\\$\\\\geq\\$");
+    private static final Map<String, String> REPLACE = new HashMap<>(2);
+
+    static {
+        REPLACE.put("≤", "$\\leq$");
+        REPLACE.put("≥", "$\\geq$");
+    }
+
     private static final Pattern REPLACE_PATTERN = Pattern.compile(
             REPLACE.keySet().stream().reduce("(", (r, s) -> r.length() == 1 ? r + s : r + "|" + s) + ")");
 
@@ -66,10 +72,19 @@ public class PandocConverter
         Matcher matcher = REPLACE_PATTERN.matcher(html);
         if (matcher.find()) {
             StringBuilder buf = new StringBuilder(html.length() + 16);
+            int i = 0;
+            int pos;
             do {
-                matcher.appendReplacement(buf, REPLACE.get(matcher.group(1)));
+                pos = matcher.start();
+                while (i < pos) {
+                    buf.appendCodePoint(html.codePointAt(i++));
+                }
+                i = matcher.end();
+                buf.append(REPLACE.get(matcher.group()));
             } while (matcher.find());
-            matcher.appendTail(buf);
+            while (i < html.length()) {
+                buf.appendCodePoint(html.codePointAt(i++));
+            }
             return buf.toString();
         }
         return html;

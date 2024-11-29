@@ -17,8 +17,10 @@
 package io.github.thomashuss.cpterm.artifacts.html;
 
 import java.io.BufferedReader;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
@@ -35,14 +37,16 @@ public abstract class TempFileExternalConverter
                 output.toString().replaceFirst("\\.[^.]+$", ".html"));
         logger.info("Using temp file {}", temp);
         try {
-            Files.writeString(temp, html);
+            try (FileOutputStream fos = new FileOutputStream(temp.toFile());
+                 PrintWriter pw = new PrintWriter(fos)) {
+                pw.write(html);
+            }
             Process p = getProcess(temp, output).start();
             try (BufferedReader err = new BufferedReader(new InputStreamReader(p.getErrorStream()));
                  BufferedReader out = new BufferedReader(new InputStreamReader(p.getInputStream()))) {
                 p.waitFor();
                 logError(p.exitValue(), out, err);
             }
-
         } catch (IOException | InterruptedException e) {
             logger.error("Communication with process failed", e);
             throw new ConversionException(e);

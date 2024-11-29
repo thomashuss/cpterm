@@ -26,7 +26,6 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = SetCode.class, name = "setCode"),
         @JsonSubTypes.Type(value = SetPrefs.class, name = "setPrefs")
 })
-public abstract sealed class Message
-        permits LogEntry, NewProblem, SetCode, SetPrefs
+public abstract class Message
 {
 }

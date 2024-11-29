@@ -21,8 +21,9 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.nio.file.Files;
+import java.io.PrintWriter;
 import java.nio.file.Path;
 
 /**
@@ -40,6 +41,7 @@ public class RawHtmlConverter
 
     /**
      * Set the behavior for handling SVGs in documents.
+     *
      * @param renderSvg true if SVG should be rendered to an image
      */
     public void setRenderSvg(boolean renderSvg)
@@ -55,8 +57,9 @@ public class RawHtmlConverter
         if (renderSvg) {
             ConversionUtils.renderSvgElements(d);
         }
-        try {
-            Files.writeString(outputFile, d.outerHtml());
+        try (FileOutputStream fos = new FileOutputStream(outputFile.toFile());
+             PrintWriter pw = new PrintWriter(fos)) {
+            pw.write(d.outerHtml());
         } catch (IOException e) {
             logger.error("Unable to write to file", e);
             throw new ConversionException(e);

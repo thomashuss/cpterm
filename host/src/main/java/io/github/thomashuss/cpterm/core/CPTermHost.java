@@ -41,6 +41,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -54,6 +55,7 @@ public class CPTermHost
         extends Host<Message>
 {
     private static final Logger logger = LoggerFactory.getLogger(CPTermHost.class);
+    private static final Object lock = new Object();
     /**
      * Preferences key for the flag indicating whether to write the problem statement to a temporary file.
      */
@@ -269,16 +271,24 @@ public class CPTermHost
     {
         prop.putAll(p);
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM))) {
-            defaultConverter = switch (prop.getProperty(DEFAULT_PROBLEM_CONVERTER)) {
-                case OPEN_HTML_TO_PDF -> Converter.OPEN_HTML_TO_PDF;
-                case PANDOC -> configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
-                case LIBREOFFICE -> configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH, LIBREOFFICE_ARGS);
-                case RAW_HTML -> {
+            switch (prop.getProperty(DEFAULT_PROBLEM_CONVERTER)) {
+                case OPEN_HTML_TO_PDF:
+                    defaultConverter = Converter.OPEN_HTML_TO_PDF;
+                    break;
+                case PANDOC:
+                    defaultConverter = configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
+                    break;
+                case LIBREOFFICE:
+                    defaultConverter = configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH,
+                            LIBREOFFICE_ARGS);
+                    break;
+                case RAW_HTML:
                     Converter.RAW_HTML.setRenderSvg(Boolean.parseBoolean(prop.getProperty(RAW_HTML_SHOULD_RENDER_SVG)));
-                    yield Converter.RAW_HTML;
-                }
-                default -> null;
-            };
+                    defaultConverter = Converter.RAW_HTML;
+                    break;
+                default:
+                    defaultConverter = null;
+            }
         }
     }
 
@@ -300,7 +310,7 @@ public class CPTermHost
         args = prop.getProperty(argsKey);
         converter.setArgs(args);
         try {
-            converter.setExePath(path.isEmpty() ? null : Path.of(path));
+            converter.setExePath(path.isEmpty() ? null : Paths.get(path));
         } catch (IllegalArgumentException e) {
             logger.error("Invalid path", e);
             return null;
@@ -409,10 +419,10 @@ public class CPTermHost
     @Override
     public boolean received(Message message)
     {
-        if (message instanceof NewProblem np) {
-            startProblem(np);
-        } else if (message instanceof SetPrefs sp) {
-            setPrefs(sp.getPrefs());
+        if (message instanceof NewProblem) {
+            startProblem((NewProblem) message);
+        } else if (message instanceof SetPrefs) {
+            setPrefs(((SetPrefs) message).getPrefs());
         }
         return true;
     }
@@ -468,7 +478,6 @@ public class CPTermHost
 
     private class ScratchFile
     {
-        private static final Object lock = new Object();
         private final String tempKey;
         private final String pathKey;
         private final String handlerKey;
@@ -517,7 +526,7 @@ public class CPTermHost
                 }
                 isTemp = false;
                 lastPrefix = prefix;
-                path = Path.of(prefix + suffix);
+                path = Paths.get(prefix + suffix);
             }
             logger.info("Using scratch file {}", path);
             return path;

@@ -117,7 +117,7 @@ public abstract class ExternalConverter
             } else if (!dq && ch == '\'') {
                 sq = !sq;
             } else if (!dq && !sq && ch == ' ') {
-                if (!argBuf.isEmpty()) {
+                if (argBuf.length() == 0) {
                     word = argBuf.toString();
                     if (argCount < args.size()) {
                         args.set(argCount++, word);
@@ -132,7 +132,7 @@ public abstract class ExternalConverter
             }
         }
 
-        if (!argBuf.isEmpty()) {
+        if (argBuf.length() == 0) {
             word = argBuf.toString();
             if (argCount < args.size()) {
                 args.set(argCount++, word);

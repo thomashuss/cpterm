@@ -10,6 +10,7 @@ import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.List;
 import java.util.Locale;
@@ -46,7 +47,7 @@ public class Installer
     {
         Path jar;
         try {
-            jar = Path.of(Installer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
+            jar = Paths.get(Installer.class.getProtectionDomain().getCodeSource().getLocation().toURI());
         } catch (URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -86,10 +87,10 @@ public class Installer
             writeManifest(bin, FIREFOX_EXT_ID, manifest);
             putWinReg(FIREFOX_REG_KEY, manifest.toString());
         } else if (MAC) {
-            writeManifest(bin, FIREFOX_EXT_ID, Path.of(System.getProperty("user.home"), "Library",
+            writeManifest(bin, FIREFOX_EXT_ID, Paths.get(System.getProperty("user.home"), "Library",
                     "Application Support", "Mozilla", "NativeMessagingHosts", MANIFEST_FNAME));
         } else {
-            writeManifest(bin, FIREFOX_EXT_ID, Path.of(System.getProperty("user.home"), ".mozilla",
+            writeManifest(bin, FIREFOX_EXT_ID, Paths.get(System.getProperty("user.home"), ".mozilla",
                     "native-messaging-hosts", MANIFEST_FNAME));
         }
     }
@@ -102,10 +103,10 @@ public class Installer
             writeManifest(bin, CHROME_EXT_ID, manifest);
             putWinReg(CHROME_REG_KEY, manifest.toString());
         } else if (MAC) {
-            writeManifest(bin, CHROME_EXT_ID, Path.of(System.getProperty("user.home"), "Library",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), "Library",
                     "Application Support", "Google", "Chrome", "NativeMessagingHosts", MANIFEST_FNAME));
         } else {
-            writeManifest(bin, CHROME_EXT_ID, Path.of(System.getProperty("user.home"), ".config",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), ".config",
                     "google-chrome", "NativeMessagingHosts", MANIFEST_FNAME));
         }
     }
@@ -118,10 +119,10 @@ public class Installer
             writeManifest(bin, CHROME_EXT_ID, manifest);
             putWinReg(CHROME_REG_KEY, manifest.toString());
         } else if (MAC) {
-            writeManifest(bin, CHROME_EXT_ID, Path.of(System.getProperty("user.home"), "Library",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), "Library",
                     "Application Support", "Chromium", "NativeMessagingHosts", MANIFEST_FNAME));
         } else {
-            writeManifest(bin, CHROME_EXT_ID, Path.of(System.getProperty("user.home"), ".config",
+            writeManifest(bin, CHROME_EXT_ID, Paths.get(System.getProperty("user.home"), ".config",
                     "chromium", "NativeMessagingHosts", MANIFEST_FNAME));
         }
     }
@@ -146,7 +147,7 @@ public class Installer
             bin = dir.resolve("cpterm-host");
             binFile = bin.toFile();
             try (FileOutputStream fos = new FileOutputStream(binFile);
-            PrintWriter pw = new PrintWriter(fos)) {
+                 PrintWriter pw = new PrintWriter(fos)) {
                 pw.println("#!/bin/sh");
                 pw.print("exec ");
                 pw.print(JAVA_OPTS);
@@ -170,11 +171,9 @@ public class Installer
                 Files.copy(currentJar, dir.resolve(currentJar.getFileName()), StandardCopyOption.REPLACE_EXISTING));
 
         for (Browser b : browsers) {
-            switch (b) {
-                case FIREFOX -> installFirefox(dir, bin);
-                case CHROME -> installChrome(dir, bin);
-                case CHROMIUM -> installChromium(dir, bin);
-            }
+            if (b == Browser.FIREFOX) installFirefox(dir, bin);
+            else if (b == Browser.CHROME) installChrome(dir, bin);
+            else if (b == Browser.CHROMIUM) installChromium(dir, bin);
         }
     }
 }
