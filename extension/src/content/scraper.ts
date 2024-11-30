@@ -201,5 +201,7 @@ if (scraper != null) {
             observer.observe(document.body, { childList: true, subtree: true });
         }
     });
-    document.body.appendChild(button);
+    const shadowElem = document.createElement("div");
+    document.body.appendChild(shadowElem);
+    shadowElem.attachShadow({ mode: "open" }).appendChild(button);
 }
