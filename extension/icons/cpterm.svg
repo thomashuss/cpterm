@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg
+   height="128"
+   version="1.1"
+   viewBox="0 0 128 128"
+   width="128"
+   xml:space="preserve"
+   id="svg9"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:svg="http://www.w3.org/2000/svg"><style
+     type="text/css"
+     id="style2">
+<![CDATA[
+	.st0{fill:#EF3E42;}
+	.st1{fill:#FFFFFF;}
+	.st2{fill:none;}
+	.st3{fill-rule:evenodd;clip-rule:evenodd;fill:#FFFFFF;}
+]]>
+</style><g
+     id="layer1"><rect
+       style="fill:#000000;fill-opacity:1;fill-rule:nonzero;stroke-width:1.15743"
+       id="rect19027"
+       width="128"
+       height="128"
+       x="0"
+       y="0" /></g><g
+     id="layer2"><rect
+       style="fill:#f9f9f9;stroke-width:0.601524"
+       id="rect319-3"
+       width="72.560707"
+       height="4.8649998"
+       x="7.848"
+       y="33.849499" /><rect
+       style="fill:#f9f9f9;stroke-width:0.514896"
+       id="rect319-6"
+       width="53.16444"
+       height="4.8650765"
+       x="7.848"
+       y="51.668762" /><rect
+       style="fill:#f9f9f9;stroke-width:0.558699"
+       id="rect319"
+       width="62.594879"
+       height="4.8650765"
+       x="7.848"
+       y="69.488045" /><rect
+       style="fill:#f9f9f9;stroke-width:0.409669"
+       id="rect319-7"
+       width="33.655457"
+       height="4.8650765"
+       x="7.848"
+       y="87.307297" /><rect
+       style="fill:#f9f9f9;stroke-width:0.468473"
+       id="rect319-5"
+       width="44.010468"
+       height="4.8650765"
+       x="7.848"
+       y="105.12656" /><rect
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#00ff00;stroke-width:1.50189;stroke-dasharray:none"
+       id="rect468"
+       width="14.185106"
+       height="14.184633"
+       x="105.21594"
+       y="34.610332" /><rect
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#ff2a2a;stroke-width:1.50189;stroke-dasharray:none"
+       id="rect468-0"
+       width="14.185106"
+       height="14.184633"
+       x="105.21594"
+       y="74.90799" /><rect
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#00ff00;stroke-width:1.50189;stroke-dasharray:none"
+       id="rect468-9"
+       width="14.185106"
+       height="14.184633"
+       x="105.21594"
+       y="54.759159" /><rect
+       style="fill:none;fill-opacity:1;fill-rule:nonzero;stroke:#00ff00;stroke-width:1.50189;stroke-dasharray:none"
+       id="rect468-3"
+       width="14.185106"
+       height="14.184633"
+       x="105.21594"
+       y="95.056808" /><rect
+       style="fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke-width:2.09378"
+       id="rect19098"
+       width="128"
+       height="1.4612187"
+       x="0"
+       y="15.143511" /><text
+       xml:space="preserve"
+       style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.31237px;font-family:monospace;-inkscape-font-specification:'monospace, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#ffffff;fill-opacity:1;fill-rule:nonzero;stroke-width:0.776029"
+       x="2.3944056"
+       y="10.541454"
+       id="text19258"><tspan
+         id="tspan19256"
+         x="2.3944056"
+         y="10.541454"
+         style="font-style:normal;font-variant:normal;font-weight:bold;font-stretch:normal;font-size:9.31237px;font-family:monospace;-inkscape-font-specification:'monospace, Bold';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.776029">~/code/fizzbuzz.c</tspan></text></g></svg>

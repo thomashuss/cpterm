@@ -4,7 +4,10 @@
   "name": "CPTerm",
   "version": "1.0",
   "icons": {
-    "48": "icons/message.svg"
+    "16": "icons/cpterm-16.png",
+    "32": "icons/cpterm-32.png",
+    "48": "icons/cpterm-48.png",
+    "128": "icons/cpterm-128.png"
   },
   "minimum_chrome_version": "104",
   "background": {
@@ -42,7 +45,7 @@
     "storage"
   ],
   "host_permissions": [
-        "*://*.hackerrank.com/*",
-        "*://*.leetcode.com/*"
+    "*://*.hackerrank.com/*",
+    "*://*.leetcode.com/*"
   ]
 }
