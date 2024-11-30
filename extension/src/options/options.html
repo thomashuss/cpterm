@@ -6,6 +6,21 @@
     <meta charset="utf-8">
     <meta name="color-scheme" content="dark light">
     <script type="text/javascript" src="options.js"></script>
+    <style type="text/css">
+        td {
+            padding: 3px;
+        }
+
+        td:has(label) {
+            text-align: right;
+        }
+
+        .pref:not([type="checkbox"]) {
+            box-sizing: content-box;
+            padding: 0;
+            width: 100%;
+        }
+    </style>
 </head>
 
 <body>
@@ -28,7 +43,8 @@
                 <td><input type="checkbox" id="render_problem" class="pref" checked="" /></td>
             </tr>
             <tr>
-                <td><label for="reload_problem">Reload problem statements when the same URL is opened twice?</label></td>
+                <td><label for="reload_problem">Reload problem statements when the same URL is opened twice?</label>
+                </td>
                 <td><input type="checkbox" id="reload_problem" class="pref" /></td>
             </tr>
             <tr>
@@ -44,13 +60,14 @@
                 <td><input type="text" id="problem_file_suffix" class="pref" value=".pdf" /></td>
             </tr>
             <tr>
-                <td><label for="default_problem_converter">Tool to use for rendering problem statement files</label></td>
+                <td><label for="default_problem_converter">Tool to use for rendering problem statement files</label>
+                </td>
                 <td><select id="default_problem_converter" class="pref">
-                    <option value="open_html_to_pdf">Open HTML to PDF (built-in)</option>
-                    <option value="pandoc">Pandoc</option>
-                    <option value="libreoffice">LibreOffice</option>
-                    <option value="raw_html">Export raw HTML</option>
-                </select></td>
+                        <option value="open_html_to_pdf">Open HTML to PDF (built-in)</option>
+                        <option value="pandoc">Pandoc</option>
+                        <option value="libreoffice">LibreOffice</option>
+                        <option value="raw_html">Export raw HTML</option>
+                    </select></td>
             </tr>
             <tr>
                 <td><label for="pandoc_path">Path to Pandoc</label></td>
@@ -73,7 +90,8 @@
                 <td><input type="checkbox" id="raw_html_should_render_svg" class="pref" /></td>
             </tr>
             <tr>
-                <td><label for="problem_viewer">Path to problem statement viewer (leave blank for OS default)</label></td>
+                <td><label for="problem_viewer">Path to problem statement viewer (leave blank for OS default)</label>
+                </td>
                 <td><input type="text" id="problem_viewer" class="pref" /></td>
             </tr>
             <tr>
@@ -81,7 +99,8 @@
                 <td><input type="text" id="post_problem_hook" class="pref" /></td>
             </tr>
             <tr>
-                <td></td><td><button id="save" style="float: right;">Save</button></td>
+                <td></td>
+                <td><button id="save" style="float: right;">Save</button></td>
             </tr>
         </tbody>
     </table>
