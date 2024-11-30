@@ -179,6 +179,22 @@ function sendProblem(scraper: Scraper): boolean {
     return false;
 }
 
+/**
+ * Call {@code sendProblem} when appropriate.
+ * @param scraper used to get the problem
+ */
+function sendProblemWhenReady(scraper: Scraper) {
+    if (!scraper.isProblem() || !sendProblem(scraper)) {
+        // watch for changes that may indicate a new problem was opened
+        const observer = new MutationObserver(() => {
+            if (scraper.isProblem() && sendProblem(scraper)) {
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, { childList: true, subtree: true });
+    }
+}
+
 const scraper = getScraper();
 if (scraper != null) {
     // keep nm host alive in case the kill timer is set
@@ -190,18 +206,14 @@ if (scraper != null) {
     button.style.left = button.style.top = "0px";
     button.style.zIndex = "1000";
     button.innerText = "Open problem";
-    button.addEventListener("click", () => {
-        if (!scraper.isProblem() || !sendProblem(scraper)) {
-            // watch for changes that may indicate a new problem was opened
-            const observer = new MutationObserver(() => {
-                if (scraper.isProblem() && sendProblem(scraper)) {
-                    observer.disconnect();
-                }
-            });
-            observer.observe(document.body, { childList: true, subtree: true });
-        }
-    });
+    button.addEventListener("click", () => sendProblemWhenReady(scraper));
     const shadowElem = document.createElement("div");
     document.body.appendChild(shadowElem);
     shadowElem.attachShadow({ mode: "open" }).appendChild(button);
+
+    document.addEventListener("keyup", (e) => {
+        if (e.altKey && e.shiftKey && e.key === "C") {
+            sendProblemWhenReady(scraper);
+        }
+    });
 }
