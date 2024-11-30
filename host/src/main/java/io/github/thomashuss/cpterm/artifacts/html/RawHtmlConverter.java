@@ -21,7 +21,6 @@ import org.jsoup.nodes.Document;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.nio.file.Path;
@@ -57,8 +56,7 @@ public class RawHtmlConverter
         if (renderSvg) {
             ConversionUtils.renderSvgElements(d);
         }
-        try (FileOutputStream fos = new FileOutputStream(outputFile.toFile());
-             PrintWriter pw = new PrintWriter(fos)) {
+        try (PrintWriter pw = new PrintWriter(outputFile.toFile())) {
             pw.write(d.outerHtml());
         } catch (IOException e) {
             logger.error("Unable to write to file", e);

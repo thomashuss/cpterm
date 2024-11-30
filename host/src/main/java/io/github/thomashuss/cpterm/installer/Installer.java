@@ -4,7 +4,6 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.net.URISyntaxException;
@@ -216,8 +215,7 @@ public class Installer
         if (WINDOWS) {
             bin = dir.resolve("cpterm-host.bat");
             binFile = bin.toFile();
-            try (FileOutputStream fos = new FileOutputStream(binFile);
-                 PrintWriter pw = new PrintWriter(fos)) {
+            try (PrintWriter pw = new PrintWriter(binFile)) {
                 pw.println("@echo off");
                 pw.print(JAVA_OPTS);
                 pw.print(" \"%~dp0/");
@@ -227,8 +225,7 @@ public class Installer
         } else {
             bin = dir.resolve("cpterm-host");
             binFile = bin.toFile();
-            try (FileOutputStream fos = new FileOutputStream(binFile);
-                 PrintWriter pw = new PrintWriter(fos)) {
+            try (PrintWriter pw = new PrintWriter(binFile)) {
                 pw.println("#!/bin/sh");
                 pw.print("exec ");
                 pw.print(JAVA_OPTS);

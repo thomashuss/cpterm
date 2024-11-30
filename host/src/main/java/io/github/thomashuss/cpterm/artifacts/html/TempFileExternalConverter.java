@@ -17,7 +17,6 @@
 package io.github.thomashuss.cpterm.artifacts.html;
 
 import java.io.BufferedReader;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
@@ -37,8 +36,7 @@ public abstract class TempFileExternalConverter
                 output.toString().replaceFirst("\\.[^.]+$", ".html"));
         logger.info("Using temp file {}", temp);
         try {
-            try (FileOutputStream fos = new FileOutputStream(temp.toFile());
-                 PrintWriter pw = new PrintWriter(fos)) {
+            try (PrintWriter pw = new PrintWriter(temp.toFile())) {
                 pw.write(html);
             }
             Process p = getProcess(temp, output).start();
