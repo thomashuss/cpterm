@@ -162,6 +162,10 @@ public class CPTermHost
      */
     private static final String PROBLEM_VIEWER = "problem_viewer";
     /**
+     * File to run after creating problem files.
+     */
+    private static final String POST_PROBLEM_HOOK = "post_problem_hook";
+    /**
      * Contains default properties for the program.
      */
     private static final Properties DEFAULTS = new Properties();
@@ -175,6 +179,7 @@ public class CPTermHost
         DEFAULTS.setProperty(LIBREOFFICE_PATH, "");
         DEFAULTS.setProperty(PANDOC_ARGS, "");
         DEFAULTS.setProperty(PANDOC_PATH, "");
+        DEFAULTS.setProperty(POST_PROBLEM_HOOK, "");
         DEFAULTS.setProperty(PROBLEM_FILE_PATH, "");
         DEFAULTS.setProperty(PROBLEM_FILE_SUFFIX, DEFAULT_PROBLEM_FILE_SUFFIX);
         DEFAULTS.setProperty(PROBLEM_USE_TEMP_FILE, DEFAULT_PROBLEM_USE_TEMP_FILE);
@@ -336,9 +341,9 @@ public class CPTermHost
         problemFile.clean();
 
         String url = np.getUrl();
+        Path pp = null;
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
                 (!Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
-            Path pp;
             try {
                 pp = problemFile.create(prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
@@ -355,7 +360,7 @@ public class CPTermHost
             lastUrl = url;
         }
 
-        Path cp;
+        Path cp = null;
         try {
             cp = codeFile.create('.' + Languages.getExt(np.getLanguage()));
             codeFileWatcher = new CodeFileWatcher(cp);
@@ -364,6 +369,16 @@ public class CPTermHost
             codeFile.open();
         } catch (IOException e) {
             err("Failed to create and start watcher for code file", e);
+        }
+
+        String hook = prop.getProperty(POST_PROBLEM_HOOK);
+        if (!hook.isEmpty()) {
+            try {
+                new ProcessBuilder(hook, cp == null ? "" : cp.toAbsolutePath().toString(),
+                        pp == null ? "" : pp.toAbsolutePath().toString()).start();
+            } catch (IOException e) {
+                err("Failed to run hook", e);
+            }
         }
     }
 
