@@ -15,9 +15,9 @@
  */
 
 import { Message } from "../common/message";
-import browser from "webextension-polyfill";
 import { Command, COMMAND, KEEP_ALIVE } from "../common/command";
 import { ERROR, LogEntry } from "../common/log-entry";
+import browser from "webextension-polyfill";
 
 const NATIVE_NAME = "io.github.thomashuss.CPTerm";
 const VERSION = "version";
