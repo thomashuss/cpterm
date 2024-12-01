@@ -343,7 +343,7 @@ public class CPTermHost
         String url = np.getUrl();
         Path pp = null;
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
-                (!Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
+                (Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
             try {
                 pp = problemFile.create(prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
