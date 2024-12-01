@@ -122,7 +122,8 @@ class HackerRank extends HasMonaco {
 
 class LeetCode extends HasMonaco {
     isProblem(): boolean {
-        return location.pathname.match(/\/problems\/.+\/description/) != null;
+        return location.pathname.match(/\/problems\/.+\//) != null
+            && (document.querySelector("div[data-track-load='description_content']") as HTMLElement)?.offsetParent != null;
     }
 
     getProblem(): string {
