@@ -24,7 +24,8 @@ import com.fasterxml.jackson.annotation.JsonTypeInfo;
         @JsonSubTypes.Type(value = LogEntry.class, name = "logEntry"),
         @JsonSubTypes.Type(value = NewProblem.class, name = "newProblem"),
         @JsonSubTypes.Type(value = SetCode.class, name = "setCode"),
-        @JsonSubTypes.Type(value = SetPrefs.class, name = "setPrefs")
+        @JsonSubTypes.Type(value = SetPrefs.class, name = "setPrefs"),
+        @JsonSubTypes.Type(value = Version.class, name = "version")
 })
 public abstract class Message
 {

@@ -19,6 +19,7 @@ export const KEEP_ALIVE = "keepAlive";
 export const LOG_ENTRY = "logEntry";
 export const NEW_PROBLEM = "newProblem";
 export const SET_CODE = "setCode";
+export const VERSION = "version";
 
 export interface Message {
     readonly type: string;
@@ -61,4 +62,8 @@ export class NewProblem implements Message {
 
 export interface SetCode extends Message {
     readonly code: string;
+}
+
+export interface Version extends Message {
+    readonly hostVersion: string;
 }

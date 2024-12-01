@@ -14,10 +14,11 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Command, LogEntry, Message, COMMAND, KEEP_ALIVE } from "../common/message";
+import { Command, LogEntry, Message, COMMAND, KEEP_ALIVE, VERSION, Version } from "../common/message";
 import browser from "webextension-polyfill";
 
 const NATIVE_NAME = "io.github.thomashuss.CPTerm";
+const HOST_VERSION = "1.0-SNAPSHOT";
 
 /**
  * Abstracts away the maintenance of a native messaging connection.
@@ -78,6 +79,21 @@ export class HostInterface {
 
         if (this.nativePort == null) {
             this.nativePort = browser.runtime.connectNative(NATIVE_NAME);
+            await new Promise<void>((resolve, reject) => {
+                const versionCheck = (m: any) => {
+                    if ((m as Message).type === VERSION) {
+                        if ((m as Version).hostVersion === HOST_VERSION) {
+                            this.nativePort?.onMessage.removeListener(versionCheck);
+                            resolve();
+                        } else {
+                            cs.postMessage(new LogEntry("error", "Host version and extension version are incompatible.  Update both the host and extension."));
+                            this.nativePort?.disconnect();
+                            reject();
+                        }
+                    }
+                };
+                this.nativePort?.onMessage.addListener(versionCheck);
+            });
             this.nativePort.onDisconnect.addListener(this.onNativePortDisconnect.bind(this));
             this.nativePort.onMessage.addListener(this.postToCS.bind(this));
             const prefs = await browser.storage.local.get(null);

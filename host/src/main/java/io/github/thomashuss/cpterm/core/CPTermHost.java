@@ -26,6 +26,7 @@ import io.github.thomashuss.cpterm.core.message.Message;
 import io.github.thomashuss.cpterm.core.message.NewProblem;
 import io.github.thomashuss.cpterm.core.message.SetCode;
 import io.github.thomashuss.cpterm.core.message.SetPrefs;
+import io.github.thomashuss.cpterm.core.message.Version;
 import io.github.thomashuss.cpterm.nm.Host;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,6 +38,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.nio.file.Files;
@@ -187,6 +189,10 @@ public class CPTermHost
         DEFAULTS.setProperty(RAW_HTML_SHOULD_RENDER_SVG, DEFAULT_RAW_HTML_SHOULD_RENDER_SVG);
         DEFAULTS.setProperty(RELOAD_PROBLEM, DEFAULT_RELOAD_PROBLEM);
         DEFAULTS.setProperty(RENDER_PROBLEM, DEFAULT_RENDER_PROBLEM);
+        try (InputStream is = CPTermHost.class.getClassLoader().getResourceAsStream("project.properties")) {
+            DEFAULTS.load(is);
+        } catch (IOException ignored) {
+        }
     }
 
     /**
@@ -237,6 +243,7 @@ public class CPTermHost
     throws IOException
     {
         CPTermHost h = new CPTermHost();
+        h.sendVersion();
         try {
             h.listen();
         } finally {
@@ -429,6 +436,18 @@ public class CPTermHost
                 }
             } else return false;
         } else return desktop != null;
+    }
+
+    /**
+     * Send the version of this host to the extension.
+     */
+    private void sendVersion()
+    {
+        try {
+            send(new Version(prop.getProperty("version")));
+        } catch (IOException e) {
+            err("Could not send host version", e);
+        }
     }
 
     @Override
