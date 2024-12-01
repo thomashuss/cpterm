@@ -4,10 +4,12 @@
   "name": "CPTerm",
   "version": "1.0",
   "icons": {
-    "16": "icons/cpterm-16.png",
-    "32": "icons/cpterm-32.png",
-    "48": "icons/cpterm-48.png",
-    "128": "icons/cpterm-128.png"
+    "16": "cpterm-16.png",
+    "32": "cpterm-32.png",
+    "48": "cpterm-48.png",
+    "64": "cpterm-64.png",
+    "96": "cpterm-96.png",
+    "128": "cpterm-128.png"
   },
   "minimum_chrome_version": "104",
   "background": {

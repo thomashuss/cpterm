@@ -4,10 +4,12 @@
   "name": "CPTerm",
   "version": "1.0",
   "icons": {
-    "16": "icons/cpterm.svg",
-    "32": "icons/cpterm.svg",
-    "48": "icons/cpterm.svg",
-    "128": "icons/cpterm.svg"
+    "16": "cpterm.svg",
+    "32": "cpterm.svg",
+    "48": "cpterm.svg",
+    "64": "cpterm.svg",
+    "96": "cpterm.svg",
+    "128": "cpterm.svg"
   },
   "browser_specific_settings": {
     "gecko": {

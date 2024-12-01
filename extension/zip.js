@@ -21,9 +21,14 @@ archive.on("error", (err) => {
 });
 
 const dist = path.resolve(__dirname, "dist");
+const icons = path.resolve(__dirname, "icons");
 archive.pipe(fs.createWriteStream(path.resolve(dist, `cpterm-${target}.zip`)));
 archive.glob("*.js", { cwd: dist });
-archive.directory("icons", "icons");
-archive.file(`manifest-${target}.json`, { name: "manifest.json" });
-archive.file(path.resolve("src", "options", "options.html"), { name: "options.html" });
+if (target === "firefox") {
+    archive.file(path.resolve(icons, "cpterm-dist.svg"), { name: "cpterm.svg" });
+} else {
+    archive.glob("*.png", { cwd: icons });
+}
+archive.file(path.resolve(__dirname, `manifest-${target}.json`), { name: "manifest.json" });
+archive.file(path.resolve(__dirname, "src", "options", "options.html"), { name: "options.html" });
 archive.finalize();
