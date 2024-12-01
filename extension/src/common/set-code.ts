@@ -14,6 +14,10 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-export interface Message {
-    readonly type: string;
+import { Message } from "./message";
+
+export const SET_CODE = "setCode";
+
+export interface SetCode extends Message {
+    readonly code: string;
 }

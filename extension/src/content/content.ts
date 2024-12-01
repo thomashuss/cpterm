@@ -15,8 +15,10 @@
  */
 
 import browser from "webextension-polyfill";
-import { LOG_ENTRY, LogEntry, Message, SET_CODE } from "../common/message";
+import { Message } from "../common/message";
 import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
+import { ERROR, LOG_ENTRY, LogEntry } from "../common/log-entry";
+import { SET_CODE } from "../common/set-code";
 
 /**
  * A closure which guarantees a background script connection.
@@ -30,7 +32,7 @@ const ensureBackground = (function() {
                 if ((u as Message).type === LOG_ENTRY) {
                     // log entries could be from the nm host or bg script
                     let le = u as LogEntry;
-                    if (le.messageType === "error") {
+                    if (le.messageType === ERROR) {
                         alert(le.message);
                     } else {
                         console.log(le.message);

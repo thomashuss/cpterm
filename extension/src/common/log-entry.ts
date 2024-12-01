@@ -14,6 +14,18 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-export interface Message {
-    readonly type: string;
+import { Message } from "common/message";
+
+export const LOG_ENTRY = "logEntry";
+export const ERROR = "error";
+
+export class LogEntry implements Message {
+    readonly type = LOG_ENTRY;
+    readonly messageType: string = "";
+    readonly message: string = "";
+
+    constructor(messageType: string, message: string) {
+        this.messageType = messageType;
+        this.message = message;
+    }
 }

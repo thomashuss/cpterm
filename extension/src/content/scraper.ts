@@ -14,10 +14,28 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Command, KEEP_ALIVE, Message, NewProblem, SET_CODE, SetCode } from "../common/message";
+import { Command, KEEP_ALIVE } from "../common/command";
+import { Message } from "../common/message";
 import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
+import { SET_CODE, SetCode } from "../common/set-code";
 
 const M_KEEP_ALIVE = JSON.stringify(new Command(KEEP_ALIVE));
+const NEW_PROBLEM = "newProblem";
+
+class NewProblem implements Message {
+    readonly type = NEW_PROBLEM;
+    readonly problem: string;
+    readonly code: string;
+    readonly language: string;
+    readonly url: string;
+
+    constructor(problem: string, code: string, language: string, url: string) {
+        this.problem = problem;
+        this.code = code;
+        this.language = language;
+        this.url = url;
+    }
+}
 
 /**
  * Return the attr function evaluated with the first element matching the class name,

@@ -14,6 +14,16 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-export interface Message {
-    readonly type: string;
+import { Message } from "common/message";
+
+export const COMMAND = "command";
+export const KEEP_ALIVE = "keepAlive";
+
+export class Command implements Message {
+    readonly type = COMMAND;
+    readonly command: string;
+
+    constructor(command: string) {
+        this.command = command;
+    }
 }

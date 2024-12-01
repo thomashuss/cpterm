@@ -14,11 +14,18 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Command, LogEntry, Message, COMMAND, KEEP_ALIVE, VERSION, Version } from "../common/message";
+import { Message } from "../common/message";
 import browser from "webextension-polyfill";
+import { Command, COMMAND, KEEP_ALIVE } from "../common/command";
+import { ERROR, LogEntry } from "../common/log-entry";
 
 const NATIVE_NAME = "io.github.thomashuss.CPTerm";
+const VERSION = "version";
 const HOST_VERSION = "1.0-SNAPSHOT";
+
+interface Version extends Message {
+    readonly hostVersion: string;
+}
 
 /**
  * Abstracts away the maintenance of a native messaging connection.
@@ -51,7 +58,7 @@ export class HostInterface {
             this.nativePort = null;
         }
         if (nativePort.error) {
-            this.postToCS(new LogEntry("error", nativePort.error.message));
+            this.postToCS(new LogEntry(ERROR, nativePort.error.message));
         }
     }
 
@@ -86,7 +93,7 @@ export class HostInterface {
                             this.nativePort?.onMessage.removeListener(versionCheck);
                             resolve();
                         } else {
-                            cs.postMessage(new LogEntry("error", "Host version and extension version are incompatible.  Update both the host and extension."));
+                            cs.postMessage(new LogEntry(ERROR, "Host version and extension version are incompatible.  Update both the host and extension."));
                             this.nativePort?.disconnect();
                             reject();
                         }
