@@ -179,15 +179,18 @@ function sendProblem(scraper: Scraper): boolean {
     return false;
 }
 
+let waiting = false;
 /**
  * Call {@code sendProblem} when appropriate.
  * @param scraper used to get the problem
  */
 function sendProblemWhenReady(scraper: Scraper) {
-    if (!scraper.isProblem() || !sendProblem(scraper)) {
+    if (!waiting && (!scraper.isProblem() || !sendProblem(scraper))) {
+        waiting = true;
         // watch for changes that may indicate a new problem was opened
         const observer = new MutationObserver(() => {
             if (scraper.isProblem() && sendProblem(scraper)) {
+                waiting = false;
                 observer.disconnect();
             }
         });
