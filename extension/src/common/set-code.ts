@@ -14,7 +14,7 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Message } from "common/message";
+import { Message } from "../common/message";
 
 export const SET_CODE = "setCode";
 

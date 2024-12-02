@@ -2,10 +2,7 @@
     "compilerOptions": {
         "outDir": "./dist",
         "target": "es6",
-        "module": "es6",
         "strict": true,
-        "esModuleInterop": true,
-        "moduleResolution": "bundler",
-        "baseUrl": "./src"
+        "moduleResolution": "bundler"
     }
 }
