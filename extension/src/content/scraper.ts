@@ -14,10 +14,10 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Command, KEEP_ALIVE } from "../common/command";
-import { Message } from "../common/message";
-import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
-import { SET_CODE, SetCode } from "../common/set-code";
+import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "content/const";
+import { Command, KEEP_ALIVE } from "common/command";
+import { Message } from "common/message";
+import { SET_CODE, SetCode } from "common/set-code";
 
 const M_KEEP_ALIVE = JSON.stringify(new Command(KEEP_ALIVE));
 const NEW_PROBLEM = "newProblem";

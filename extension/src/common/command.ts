@@ -14,7 +14,7 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Message } from "./message";
+import { Message } from "common/message";
 
 export const COMMAND = "command";
 export const KEEP_ALIVE = "keepAlive";

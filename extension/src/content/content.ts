@@ -15,10 +15,10 @@
  */
 
 import browser from "webextension-polyfill";
-import { Message } from "../common/message";
-import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
-import { ERROR, LOG_ENTRY, LogEntry } from "../common/log-entry";
-import { SET_CODE } from "../common/set-code";
+import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "content/const";
+import { Message } from "common/message";
+import { ERROR, LOG_ENTRY, LogEntry } from "common/log-entry";
+import { SET_CODE } from "common/set-code";
 
 /**
  * A closure which guarantees a background script connection.
