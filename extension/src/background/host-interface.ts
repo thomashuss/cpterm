@@ -85,28 +85,29 @@ export class HostInterface {
         }
 
         if (this.nativePort == null) {
-            this.nativePort = browser.runtime.connectNative(NATIVE_NAME);
+            const nativePort = browser.runtime.connectNative(NATIVE_NAME);
             await new Promise<void>((resolve, reject) => {
                 const versionCheck = (m: any) => {
                     if ((m as Message).type === VERSION) {
                         if ((m as Version).hostVersion === HOST_VERSION) {
-                            this.nativePort?.onMessage.removeListener(versionCheck);
+                            nativePort.onMessage.removeListener(versionCheck);
                             resolve();
                         } else {
                             cs.postMessage(new LogEntry(ERROR, "Host version and extension version are incompatible.  Update both the host and extension."));
-                            this.nativePort?.disconnect();
+                            nativePort.disconnect();
                             reject();
                         }
                     }
                 };
-                this.nativePort?.onMessage.addListener(versionCheck);
+                nativePort.onMessage.addListener(versionCheck);
             });
-            this.nativePort.onDisconnect.addListener(this.onNativePortDisconnect.bind(this));
-            this.nativePort.onMessage.addListener(this.postToCS.bind(this));
+            nativePort.onDisconnect.addListener(this.onNativePortDisconnect.bind(this));
+            nativePort.onMessage.addListener(this.postToCS.bind(this));
             const prefs = await browser.storage.local.get(null);
             if (Object.keys(prefs).length != 0) {
-                this.nativePort.postMessage({ type: "setPrefs", prefs: prefs });
+                nativePort.postMessage({ type: "setPrefs", prefs: prefs });
             }
+            this.nativePort = nativePort;
         }
 
         return this.nativePort;
