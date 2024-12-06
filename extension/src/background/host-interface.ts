@@ -32,7 +32,7 @@ interface Version extends Message {
  */
 export class HostInterface {
     private nativePort: browser.Runtime.Port | null;
-    private quitTimeout: any | null;
+    private quitTimeout: NodeJS.Timeout | null;
     private csPorts: Set<browser.Runtime.Port>;
 
     constructor() {
@@ -45,7 +45,7 @@ export class HostInterface {
      * Post the object as a message to all open CS ports.
      * @param message to post
      */
-    private postToCS(message: any) {
+    private postToCS(message: unknown) {
         this.csPorts.forEach((o) => o.postMessage(message));
     }
 
@@ -87,7 +87,7 @@ export class HostInterface {
         if (this.nativePort == null) {
             const nativePort = browser.runtime.connectNative(NATIVE_NAME);
             await new Promise<void>((resolve, reject) => {
-                const versionCheck = (m: any) => {
+                const versionCheck = (m: unknown) => {
                     if ((m as Message).type === VERSION) {
                         if ((m as Version).hostVersion === HOST_VERSION) {
                             nativePort.onMessage.removeListener(versionCheck);

@@ -31,7 +31,7 @@ const ensureBackground = (function() {
             background.onMessage.addListener((u) => {
                 if ((u as Message).type === LOG_ENTRY) {
                     // log entries could be from the nm host or bg script
-                    let le = u as LogEntry;
+                    const le = u as LogEntry;
                     if (le.messageType === ERROR) {
                         alert(le.message);
                     } else {
@@ -51,7 +51,7 @@ const ensureBackground = (function() {
  * Inject the scraper script.
  */
 function inject() {
-    let script = document.createElement("script");
+    const script = document.createElement("script");
     script.src = browser.runtime.getURL("scraper.js");
     (document.head || document.documentElement).appendChild(script);
     script.onload = () => {
