@@ -1,5 +1,6 @@
 {
   "devDependencies": {
+    "@types/webextension-polyfill": "0.12.1",
     "archiver": "7.0.1",
     "ts-loader": "9.5.1",
     "webpack": "5.96.1",
