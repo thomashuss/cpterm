@@ -49,14 +49,15 @@ public class PandocConverter
     /**
      * Create an HTML string which is useful as an input to Pandoc.
      *
-     * @param outerHtml HTML pulled from the website
-     * @param baseUri   URI the HTML was pulled from
+     * @param outerHtml   HTML pulled from the website
+     * @param baseUri     URI the HTML was pulled from
+     * @param outFileName name of output file, used for determining output type
      * @return Pandoc-friendly HTML
      */
-    private static String prepareForPandoc(String outerHtml, String baseUri)
+    private static String prepareForPandoc(String outerHtml, String baseUri, String outFileName)
     {
         Document doc = ConversionUtils.clean(Jsoup.parse(Objects.requireNonNull(outerHtml), baseUri));
-        ConversionUtils.renderSvgElements(doc);
+        ConversionUtils.renderSvgElements(doc, outFileName.endsWith(".pdf"));
         return replaceWithTex(doc.outerHtml());
     }
 
@@ -112,6 +113,6 @@ public class PandocConverter
     protected void doConvert(String outerHtml, String baseUri, Path outputFile)
     throws ConversionException
     {
-        writeToProcess(prepareForPandoc(outerHtml, baseUri), outputFile);
+        writeToProcess(prepareForPandoc(outerHtml, baseUri, outputFile.getFileName().toString()), outputFile);
     }
 }

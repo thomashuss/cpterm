@@ -42,7 +42,7 @@ public class LibreofficeConverter
     private static String prepareForLibreoffice(String html, String baseUri)
     {
         Document doc = ConversionUtils.clean(Jsoup.parse(Objects.requireNonNull(html), baseUri));
-        ConversionUtils.renderSvgElements(doc);
+        ConversionUtils.renderSvgElements(doc, true);
         return doc.outerHtml();
     }
 

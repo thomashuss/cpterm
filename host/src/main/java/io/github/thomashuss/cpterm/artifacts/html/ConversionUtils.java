@@ -29,7 +29,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.io.StringReader;
-import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
@@ -51,7 +50,7 @@ class ConversionUtils
     private static final Base64.Encoder b64 = Base64.getEncoder();
     private static final PNGTranscoderDimensions pngTranscoder = new PNGTranscoderDimensions();
     private static final int PNG_SCALAR = 4;
-    private static final Pattern NUMBERS = Pattern.compile("[0-9.]+");
+    private static final Pattern FLOAT_P = Pattern.compile("[0-9.]+");
 
     /**
      * Clean the {@link Document} using a Jsoup {@link Cleaner}, but leave SVG elements unchanged.
@@ -88,11 +87,16 @@ class ConversionUtils
      * Render all SVG drawings in {@code root} to PNG, replacing the SVG elements with IMG elements pointing to
      * a base64-encoded PNG.
      *
-     * @param root parent of the SVG elements
+     * @param root  parent of the SVG elements
+     * @param scale should PNGs be scaled to reduce risk of blur, and should width and height attributes
+     *              be added to the new {@code img} tag to explicitly show it at original size?
      */
-    static void renderSvgElements(Element root)
+    static void renderSvgElements(Element root, boolean scale)
     {
-        Matcher m = NUMBERS.matcher("");
+        Matcher m = null;
+        if (scale) {
+            m = FLOAT_P.matcher("");
+        }
         for (Element el : root.getElementsByTag("svg")) {
             if (el.hasAttr("width") && el.hasAttr("height")) {
                 Element parent = el.parent();
@@ -100,13 +104,19 @@ class ConversionUtils
                     parent.removeAttr("style");
                 }
 
-                m.reset(el.attr("width"));
-                if (m.find()) {
-                    el.attr("width", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
-                }
-                m.reset(el.attr("height"));
-                if (m.find()) {
-                    el.attr("height", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+                if (scale) {
+                    // SVG dimensions are very likely in a pixel-based unit, so we should be able to
+                    // multiply that value by a scalar prior to rendering, and divide by pixels of the
+                    // rendered image to display a scaled image at its preferred size.  If viewport
+                    // units are used, we are screwed.
+                    m.reset(el.attr("width"));
+                    if (m.find()) {
+                        el.attr("width", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+                    }
+                    m.reset(el.attr("height"));
+                    if (m.find()) {
+                        el.attr("height", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+                    }
                 }
 
                 ByteBufferOutputStream os = new ByteBufferOutputStream();
@@ -118,14 +128,14 @@ class ConversionUtils
                     continue;
                 }
 
-                ByteBuffer imgBuffer = os.toByteBuffer();
                 Element replacement = new Element("img")
-                        .attr("width", (pngTranscoder.getWidth() / PNG_SCALAR) + "px")
-                        .attr("height", (pngTranscoder.getHeight() / PNG_SCALAR) + "px")
                         .attr("alt", "Converted image")
                         .attr("src", "data:image/png;base64,"
-                                + new String(b64.encode(imgBuffer).array(), StandardCharsets.ISO_8859_1));
-
+                                + new String(b64.encode(os.toByteBuffer()).array(), StandardCharsets.ISO_8859_1));
+                if (scale) {
+                    replacement.attr("width", (pngTranscoder.getWidth() / PNG_SCALAR) + "px")
+                            .attr("height", (pngTranscoder.getHeight() / PNG_SCALAR) + "px");
+                }
                 el.replaceWith(replacement);
             } else {
                 el.remove();

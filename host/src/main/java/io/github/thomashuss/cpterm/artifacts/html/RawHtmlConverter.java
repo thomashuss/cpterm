@@ -54,7 +54,7 @@ public class RawHtmlConverter
     {
         Document d = ConversionUtils.clean(Jsoup.parse(outerHtml, baseUri));
         if (renderSvg) {
-            ConversionUtils.renderSvgElements(d);
+            ConversionUtils.renderSvgElements(d, false);
         }
         try (PrintWriter pw = new PrintWriter(outputFile.toFile())) {
             pw.write(d.outerHtml());
