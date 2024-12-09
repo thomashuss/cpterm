@@ -19,7 +19,6 @@ package io.github.thomashuss.cpterm.artifacts.html;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
-import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.batik.util.SVGConstants;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -29,10 +28,6 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import javax.imageio.ImageIO;
-import java.awt.image.BufferedImage;
-import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.StringReader;
 import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
@@ -54,7 +49,7 @@ class ConversionUtils
             .addEnforcedAttribute("svg", "xmlns", SVGConstants.SVG_NAMESPACE_URI)
             .addProtocols("img", "src", "data"));
     private static final Base64.Encoder b64 = Base64.getEncoder();
-    private static final PNGTranscoder pngTranscoder = new PNGTranscoder();
+    private static final PNGTranscoderDimensions pngTranscoder = new PNGTranscoderDimensions();
     private static final int PNG_SCALAR = 4;
     private static final Pattern NUMBERS = Pattern.compile("[0-9.]+");
 
@@ -125,17 +120,11 @@ class ConversionUtils
 
                 ByteBuffer imgBuffer = os.toByteBuffer();
                 Element replacement = new Element("img")
+                        .attr("width", (pngTranscoder.getWidth() / PNG_SCALAR) + "px")
+                        .attr("height", (pngTranscoder.getHeight() / PNG_SCALAR) + "px")
                         .attr("alt", "Converted image")
                         .attr("src", "data:image/png;base64,"
                                 + new String(b64.encode(imgBuffer).array(), StandardCharsets.ISO_8859_1));
-
-                try {
-                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imgBuffer.array()));
-                    replacement.attr("width", (((float) img.getWidth()) / PNG_SCALAR) + "px");
-                    replacement.attr("height", (((float) img.getHeight()) / PNG_SCALAR) + "px");
-                } catch (IOException e) {
-                    logger.error("Could not read PNG to obtain dimensions", e);
-                }
 
                 el.replaceWith(replacement);
             } else {
