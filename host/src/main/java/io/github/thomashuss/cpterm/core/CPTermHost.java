@@ -434,8 +434,11 @@ public class CPTermHost
                 defaultConverter.convert(np.getProblem(), url, pp.toAbsolutePath());
                 problemFile.open();
             } catch (ConversionException e) {
-                err("Conversion error", e);
-                return;
+                try {
+                    send(new LogEntry("error", "Conversion error\n" + e.getMessage()));
+                } catch (IOException ignored) {
+                }
+                pp = null;
             }
         }
         lastUrl = url;
@@ -783,7 +786,7 @@ public class CPTermHost
                 if (hasDesktop()) {
                     try {
                         desktop.open(path.toFile());
-                    } catch (IOException e) {
+                    } catch (IOException | IllegalArgumentException | UnsupportedOperationException e) {
                         err("Unable to open file with desktop", e);
                     }
                 }

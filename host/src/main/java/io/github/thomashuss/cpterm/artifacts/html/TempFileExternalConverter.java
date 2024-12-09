@@ -35,6 +35,10 @@ public abstract class TempFileExternalConverter
         Path temp = output.getParent().resolve(
                 output.toString().replaceFirst("\\.[^.]+$", ".html"));
         logger.info("Using temp file {}", temp);
+        if (temp.equals(output)) {
+            logger.error("output is also {}", output);
+            throw new ConversionException("Temp file is the output file... is the output file extension `.html'?");
+        }
         try {
             try (PrintWriter pw = new PrintWriter(temp.toFile())) {
                 pw.write(html);

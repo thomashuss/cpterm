@@ -77,7 +77,7 @@ public class LibreofficeConverter
     }
 
     @Override
-    public void convert(String outerHtml, String baseUri, Path outputFile)
+    protected void doConvert(String outerHtml, String baseUri, Path outputFile)
     throws ConversionException
     {
         writeToProcess(prepareForLibreoffice(outerHtml, baseUri), outputFile);

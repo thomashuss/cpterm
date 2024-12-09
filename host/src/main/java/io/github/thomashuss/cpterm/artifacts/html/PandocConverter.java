@@ -109,7 +109,7 @@ public class PandocConverter
     }
 
     @Override
-    public final void convert(String outerHtml, String baseUri, Path outputFile)
+    protected void doConvert(String outerHtml, String baseUri, Path outputFile)
     throws ConversionException
     {
         writeToProcess(prepareForPandoc(outerHtml, baseUri), outputFile);

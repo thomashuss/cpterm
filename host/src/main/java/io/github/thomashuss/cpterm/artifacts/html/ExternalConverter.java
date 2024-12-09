@@ -48,6 +48,19 @@ public abstract class ExternalConverter
         }
     }
 
+    public final void convert(String outerHtml, String baseUri, Path outputFile)
+    throws ConversionException
+    {
+        doConvert(outerHtml, baseUri, outputFile);
+        if (!Files.exists(outputFile)) {
+            logger.error("File {} does not exist", outputFile);
+            throw new ConversionException("External process did not create file");
+        }
+    }
+
+    protected abstract void doConvert(String outerHtml, String baseUri, Path outputFile)
+    throws ConversionException;
+
     /**
      * Set the path to the executable.
      *
