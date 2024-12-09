@@ -16,19 +16,20 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
-import com.fasterxml.jackson.annotation.JsonSubTypes;
-import com.fasterxml.jackson.annotation.JsonTypeInfo;
-
-@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, property = "type")
-@JsonSubTypes({
-        @JsonSubTypes.Type(value = Command.class, name = "command"),
-        @JsonSubTypes.Type(value = LogEntry.class, name = "logEntry"),
-        @JsonSubTypes.Type(value = NewProblem.class, name = "newProblem"),
-        @JsonSubTypes.Type(value = SetCode.class, name = "setCode"),
-        @JsonSubTypes.Type(value = SetPrefs.class, name = "setPrefs"),
-        @JsonSubTypes.Type(value = TestResults.class, name = "testResults"),
-        @JsonSubTypes.Type(value = Version.class, name = "version")
-})
-public abstract class Message
+public class Command
+        extends Message
 {
+    public static final String RUN = "run";
+    public static final String SUBMIT = "submit";
+    private final String command;
+
+    public Command(String command)
+    {
+        this.command = command;
+    }
+
+    public String getCommand()
+    {
+        return command;
+    }
 }

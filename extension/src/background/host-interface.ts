@@ -32,7 +32,7 @@ interface Version extends Message {
  */
 export class HostInterface {
     private nativePort: browser.Runtime.Port | null;
-    private quitTimeout: NodeJS.Timeout | null;
+    private quitTimeout: ReturnType<typeof setTimeout> | null;
     private csPorts: Set<browser.Runtime.Port>;
 
     constructor() {
@@ -117,7 +117,7 @@ export class HostInterface {
         if (this.nativePort != null) {
             const p: Record<string, string> = {};
             for (const change of Object.keys(changes)) {
-                p[change] = changes[change].newValue as string || "";
+                p[change] = changes[change].newValue as string ?? "";
             }
             this.nativePort.postMessage({ type: "setPrefs", prefs: p });
         }

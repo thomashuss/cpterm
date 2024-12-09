@@ -14,7 +14,7 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package io.github.thomashuss.cpterm.nm;
+package io.github.thomashuss.cpterm.ext;
 
 import java.io.IOException;
 import java.io.InputStream;

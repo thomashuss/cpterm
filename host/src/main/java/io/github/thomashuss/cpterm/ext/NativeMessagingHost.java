@@ -14,7 +14,7 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package io.github.thomashuss.cpterm.nm;
+package io.github.thomashuss.cpterm.ext;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -26,7 +26,7 @@ import java.io.OutputStream;
  *
  * @param <T> type of message
  */
-public abstract class Host<T>
+public abstract class NativeMessagingHost<T>
 {
     private static final Object lock = new Object();
     private static final ObjectMapper mapper = new ObjectMapper();
@@ -34,14 +34,14 @@ public abstract class Host<T>
     private static final OutputStream os = System.out;
     private final Class<T> messageClass;
 
-    public Host(Class<T> messageClass)
+    public NativeMessagingHost(Class<T> messageClass)
     {
         this.messageClass = messageClass;
     }
 
     /**
-     * Listen for new messages and invoke {@link Host#received(T)} when a message is received.  Blocks until no more
-     * messages can be received.
+     * Listen for new messages and invoke {@link NativeMessagingHost#received(T)} when a message is received.
+     * Blocks until no more messages can be received.
      *
      * @throws IOException if the message can't be read
      */
@@ -77,7 +77,8 @@ public abstract class Host<T>
     }
 
     /**
-     * Invoked on the same thread as {@link Host#listen()} when a message is received.  This method blocks listening.
+     * Invoked on the same thread as {@link NativeMessagingHost#listen()} when a message is received.
+     * Blocks listening.
      *
      * @param t received message
      * @return {@code true} if should continue listening for messages

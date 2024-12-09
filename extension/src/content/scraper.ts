@@ -15,26 +15,25 @@
  */
 
 import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from "./const";
-import { Command, KEEP_ALIVE } from "../common/command";
+import { COMMAND, Command, KEEP_ALIVE } from "../common/command";
 import { Message } from "../common/message";
 import { SET_CODE, SetCode } from "../common/set-code";
+import { TestCase, TestResults } from "../common/test-results";
+import { NewProblem } from "../common/new-problem";
 
 const M_KEEP_ALIVE = JSON.stringify(new Command(KEEP_ALIVE));
-const NEW_PROBLEM = "newProblem";
+const RUN_TEST = "run";
+const SUBMIT_CODE = "submit";
 
-class NewProblem implements Message {
-    readonly type = NEW_PROBLEM;
-    readonly problem: string;
-    readonly code: string;
-    readonly language: string;
-    readonly url: string;
+type OptionalUndefHElement = HTMLElement | undefined | null;
+type OptionalHElement = HTMLElement | null;
 
-    constructor(problem: string, code: string, language: string, url: string) {
-        this.problem = problem;
-        this.code = code;
-        this.language = language;
-        this.url = url;
-    }
+/**
+ * Complain about the DOM structure if t is null.
+ * @param t checked
+ */
+function assertDomStructure<T>(t: T | null | undefined): asserts t is T {
+    if (t == null) throw new Error("Unexpected DOM structure");
 }
 
 /**
@@ -47,10 +46,40 @@ class NewProblem implements Message {
 function firstAttrByClassName(className: string, attr: (e: Element) => string | null): string {
     const l = document.getElementsByClassName(className);
     if (l.length > 0) {
-        return attr(l[0]) || "";
+        return attr(l[0]) ?? "";
     } else {
         return "";
     }
+}
+
+/**
+ * Watch the specified element for changes until a condition is met.  If the condition returns true
+ * before starting to watch the element, the promise resolves immediately.
+ * @param elem element to watch
+ * @param condition promise is not resolved until this returns true
+ * @param options passed to MutationObserver
+ * @param initCb called immediately after listening starts
+ * @param timeout wait no longer than this time in milliseconds to resolve promise; rejects on timeout (default 60000)
+ * @returns promise
+ */
+async function watchElement(elem: Node, condition: () => boolean, options?: MutationObserverInit,
+    initCb?: (() => void) | null, timeout?: number): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+        if (condition()) {
+            resolve();
+        } else {
+            const t = setTimeout(() => { observer.disconnect(); reject("Timed out"); }, timeout ?? 60000);
+            const observer = new MutationObserver(() => {
+                if (condition()) {
+                    clearTimeout(t);
+                    observer.disconnect();
+                    resolve();
+                }
+            });
+            observer.observe(elem, options);
+        }
+        if (initCb != null) initCb();
+    });
 }
 
 /**
@@ -78,6 +107,14 @@ interface Scraper {
      * Get the name of the problem's language.
      */
     getLanguage(): string;
+    /**
+     * Get the results of the test cases.
+     */
+    runTestCases(): Promise<Record<string, TestCase>>;
+    /**
+     * Submit the problem and get the results of the submission test cases.
+     */
+    runSubmitTestCases(): Promise<Record<string, TestCase>>;
 }
 
 /**
@@ -88,15 +125,14 @@ interface Monaco {
     setValue(value: string): void;
 }
 
-/**
- * Extension of the window object which has the global monaco.
- */
-interface MonacoWindow {
-    monaco: {
-        editor: {
-            getModels(): Array<Monaco>;
+declare global {
+    interface Window {
+        monaco?: {
+            editor: {
+                getModels(): Monaco[];
+            };
         };
-    } | undefined;
+    }
 }
 
 /**
@@ -107,21 +143,23 @@ abstract class HasMonaco implements Scraper {
      * Get the monaco reference from the page.
      * @returns monaco reference or null if global monaco object not present
      */
-    private ensureMonaco(): Monaco | undefined {
-        return (window as unknown as MonacoWindow).monaco?.editor.getModels()[0];
+    private getMonaco(): Monaco | undefined {
+        return window.monaco?.editor.getModels()[0];
     }
 
     public getCode(): string {
-        return this.ensureMonaco()?.getValue() || "";
+        return this.getMonaco()?.getValue() ?? "";
     }
 
     public setCode(code: string): void {
-        this.ensureMonaco()!.setValue(code);
+        this.getMonaco()?.setValue(code);
     }
 
     abstract isProblem(): boolean;
     abstract getProblem(): string;
     abstract getLanguage(): string;
+    abstract runTestCases(): Promise<Record<string, TestCase>>;
+    abstract runSubmitTestCases(): Promise<Record<string, TestCase>>;
 }
 
 class HackerRank extends HasMonaco {
@@ -136,20 +174,157 @@ class HackerRank extends HasMonaco {
     getLanguage(): string {
         return firstAttrByClassName("select-language", e => (e as HTMLElement).innerText);
     }
+
+    private static async getTestCases(btnClass: string): Promise<Record<string, TestCase>> {
+        await watchElement(document, () => document.getElementsByClassName("testcases-result-wrapper").length === 0,
+            { childList: true, subtree: true }, () => (document.getElementsByClassName(btnClass)[0] as HTMLElement).click());
+        let wrappers: HTMLCollectionOf<Element>;
+        await watchElement(document, () => (wrappers = document.getElementsByClassName("testcases-result-wrapper")).length > 0,
+            { childList: true, subtree: true });
+        const ret: Record<string, TestCase> = {};
+        if (wrappers!.length > 0) {
+            const wrapper = wrappers![0];
+            const content = wrapper.getElementsByClassName("tab-content")[0];
+            const tabs = wrapper.getElementsByClassName("tab-item");
+            for (const tab of tabs) {
+                await watchElement(content, () => content.getAttribute("aria-labelledby") === tab.id
+                    && (content.getElementsByClassName("unlock-wrapper").length > 0
+                        || content.getElementsByClassName("lines-container").length > 0),
+                    { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-labelledby"] },
+                    () => (tab as HTMLElement).click());
+                const stdin = (content.querySelector(".stdin .lines-container") as HTMLElement | undefined)?.innerText ?? "";
+                const expected = (content.querySelector(".expected-output .lines-container") as HTMLElement | undefined)?.innerText;
+                const stdout = (content.querySelector(".stdout .lines-container") as HTMLElement | undefined)?.innerText
+                    ?? tab.querySelector("svg[aria-label='Failed']") != null ? "" : expected;
+                ret[(tab as HTMLElement).innerText] = new TestCase(stdin, stdout, expected);
+            }
+        }
+        return ret;
+    }
+
+    async runTestCases(): Promise<Record<string, TestCase>> {
+        return HackerRank.getTestCases("hr-monaco-compile");
+    }
+
+    async runSubmitTestCases(): Promise<Record<string, TestCase>> {
+        return HackerRank.getTestCases("hr-monaco-submit");
+    }
 }
 
 class LeetCode extends HasMonaco {
     isProblem(): boolean {
         return location.pathname.match(/\/problems\/.+\//) != null
-            && (document.querySelector("div[data-track-load='description_content']") as HTMLElement)?.offsetParent != null;
+            && (document.querySelector("div[data-track-load='description_content']") as HTMLElement | undefined)?.offsetParent != null;
     }
 
     getProblem(): string {
-        return document.querySelector("div[data-track-load='description_content']")?.outerHTML || "";
+        return document.querySelector("div[data-track-load='description_content']")?.outerHTML ?? "";
     }
 
     getLanguage(): string {
-        return (document.querySelector("#editor button:has(div svg[data-icon*='down'])") as HTMLElement)?.innerText || "";
+        return (document.querySelector("#editor button:has(div svg[data-icon*='down'])") as HTMLElement | undefined)?.innerText ?? "";
+    }
+
+    async runTestCases(): Promise<Record<string, TestCase>> {
+        const ret: Record<string, TestCase> = {};
+        const btn = document.querySelector("button[data-e2e-locator='console-run-button']");
+        // wait for prior result to disappear if it's visible
+        await watchElement(document, () =>
+            // not actually a double negative; will return true if the null check fails
+            // (which is desired, since this means the old result was never visible)
+            !((document.querySelector("[data-e2e-locator='console-result']") as HTMLElement | null)?.offsetParent != null),
+            { childList: true, subtree: true, attributes: true, attributeFilter: ["data-e2e-locator"] },
+            () => (btn as OptionalHElement)?.click());
+        // wait for new result to appear
+        await watchElement(document, () =>
+            (document.querySelector("[data-e2e-locator='console-result']") as HTMLElement | null)?.offsetParent != null,
+            { childList: true, subtree: true, attributes: true, attributeFilter: ["data-e2e-locator"] });
+
+        const results = document.querySelector("div[data-layout-path='/c1/ts1/t1']");  // "Test Result" tab content
+        assertDomStructure(results);
+
+        let input: OptionalUndefHElement, output: OptionalUndefHElement, expected: OptionalUndefHElement;
+        for (const label of <NodeListOf<HTMLDivElement>>results.querySelectorAll("div.text-label-3")) {
+            // TODO: maybe make this less locale dependent
+            if (label.innerText === "Input") input = <OptionalHElement>label.nextElementSibling;
+            else if (label.innerText === "Output") output = <OptionalHElement>label.nextElementSibling;
+            else if (label.innerText === "Expected") expected = <OptionalHElement>label.nextElementSibling;
+        }
+        if (input != null && output != null && expected != null) {
+            for (const tab of <NodeListOf<HTMLDivElement>>results.querySelectorAll("div.cursor-pointer")) {
+                if (tab.innerText !== "") {  // button is a test case tab
+                    if (!tab.classList.contains("bg-fill-3")) {  // tab is not presently selected
+                        const oldInput = input.innerText;
+                        await watchElement(results, () => input.innerText !== oldInput,
+                            { childList: true, subtree: true }, () => tab.click());
+                    }
+                    ret[tab.innerText] = new TestCase(input.innerText, output.innerText, expected.innerText);
+                }
+            }
+        }  // else compile error
+        return ret;
+    }
+
+    private static findHasResultsPath(hasResultsPath: HTMLElement): HTMLElement {
+        while (!hasResultsPath.hasAttribute("data-layout-path")) {
+            assertDomStructure(hasResultsPath.parentElement);
+            hasResultsPath = hasResultsPath.parentElement;
+        }
+        return hasResultsPath;
+    }
+
+    private static findResultsPath(hasResultsPath: HTMLElement): string {
+        return LeetCode.findHasResultsPath(hasResultsPath).getAttribute("data-layout-path")!.replace(/tb(?=[0-9]+$)/, "t");
+    }
+
+    async runSubmitTestCases(): Promise<Record<string, TestCase>> {
+        // tab button for submission details
+        let subDetailBtn: OptionalHElement = document.getElementById("submission-detail_tab");
+        if (subDetailBtn != null) {
+            // if tab is already open, close it to evict old results
+            const hasResultsPath = LeetCode.findHasResultsPath(subDetailBtn);
+            await watchElement(document, () => hasResultsPath.offsetParent == null, { childList: true, subtree: true },
+                () => (document.querySelector(
+                    `div[data-layout-path='${hasResultsPath.getAttribute("data-layout-path") + "/button/close"}']`
+                ) as OptionalHElement)?.click());
+        }
+
+        // excludes button header
+        const container = document.getElementById("qd-content");
+        assertDomStructure(container);
+        const submitBtn = <HTMLElement>document.querySelector("button[data-e2e-locator='console-submit-button']");
+        assertDomStructure(submitBtn);
+        // click submit button and wait for subDetailBtn to become visible
+        await watchElement(container, () => (subDetailBtn = document.getElementById("submission-detail_tab")) != null,
+            { childList: true, subtree: true }, () => submitBtn.click());
+        // don't reuse old value in case path changed
+        const resultsPath = LeetCode.findResultsPath(subDetailBtn!);
+
+        // results pane
+        let results: OptionalUndefHElement;
+        let input: OptionalUndefHElement, output: OptionalUndefHElement, expected: OptionalUndefHElement;
+
+        await watchElement(container, () =>
+            (results != null || (results = container.querySelector(`div[data-layout-path='${resultsPath}']`) as OptionalHElement) != null),
+            { childList: true, subtree: true });
+
+        await watchElement(results!, () => {
+            for (const label of <NodeListOf<HTMLDivElement>>results!.querySelectorAll("div.text-label-3")) {
+                // TODO: maybe make this less locale dependent
+                if (label.innerText === "Input") input = <OptionalHElement>label.nextElementSibling;
+                else if (label.innerText === "Output") output = <OptionalHElement>label.nextElementSibling;
+                else if (label.innerText === "Expected") expected = <OptionalHElement>label.nextElementSibling;
+            }
+            return (input != null && output != null && expected != null)
+                || results!.querySelector("span[data-e2e-locator='submission-result']")?.parentElement?.classList.contains("text-green-s")
+                || results!.querySelector("span[data-e2e-locator='console-result']") != null;
+        }, { childList: true, subtree: true });
+        if (input != null && output != null && expected != null) {
+            return { "0": new TestCase(input.innerText, output.innerText, expected.innerText) };
+        } else {
+            // passed or compile error
+            return {};
+        }
     }
 }
 
@@ -167,6 +342,25 @@ function getScraper(): Scraper | null {
 }
 
 /**
+ * Send a message to content->background.
+ * @param m 
+ */
+function sendMessage(m: Message) {
+    document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, {
+        detail: JSON.stringify(m)
+    }));
+}
+
+/**
+ * Add promise handlers for the test case submission.
+ * @param p submission promise
+ */
+function handleTestCase(p: Promise<Record<string, TestCase>>) {
+    p.then((c) => sendMessage(new TestResults(c, null)))
+        .catch((err) => sendMessage(new TestResults(null, JSON.stringify(err))));
+}
+
+/**
  * Register the listener for background script messages.
  * @param scraper used to set code on change
  */
@@ -176,6 +370,12 @@ function registerBackgroundListener(scraper: Scraper) {
             const message = JSON.parse(e.detail) as Message;
             if (message.type === SET_CODE) {
                 scraper.setCode((message as SetCode).code);
+            } else if (message.type === COMMAND) {
+                if ((message as Command).command == RUN_TEST) {
+                    handleTestCase(scraper.runTestCases());
+                } else if ((message as Command).command === SUBMIT_CODE) {
+                    handleTestCase(scraper.runSubmitTestCases());
+                }
             }
         }
     });
@@ -190,30 +390,26 @@ function sendProblem(scraper: Scraper): boolean {
     const p = scraper.getProblem(), c = scraper.getCode(), l = scraper.getLanguage();
     // check if the page is ready
     if (p.length > 0 && c.length > 0) {
-        document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, {
-            detail: JSON.stringify(new NewProblem(p, c, l, location.href))
-        }));
+        sendMessage(new NewProblem(p, c, l, location.href));
         return true;
     }
     return false;
 }
 
+/**
+ * Waiting for problem?
+ */
 let waiting = false;
 /**
  * Call {@code sendProblem} when appropriate.
  * @param scraper used to get the problem
  */
-function sendProblemWhenReady(scraper: Scraper) {
+async function sendProblemWhenReady(scraper: Scraper) {
     if (!waiting && (!scraper.isProblem() || !sendProblem(scraper))) {
         waiting = true;
-        // watch for changes that may indicate a new problem was opened
-        const observer = new MutationObserver(() => {
-            if (scraper.isProblem() && sendProblem(scraper)) {
-                waiting = false;
-                observer.disconnect();
-            }
-        });
-        observer.observe(document.body, { childList: true, subtree: true });
+        await watchElement(document.body, () => scraper.isProblem() && sendProblem(scraper),
+            { childList: true, subtree: true });
+        waiting = false;
     }
 }
 

@@ -18,7 +18,6 @@ import browser from "webextension-polyfill";
 import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from ".//const";
 import { Message } from "../common/message";
 import { ERROR, LOG_ENTRY, LogEntry } from "../common/log-entry";
-import { SET_CODE } from "../common/set-code";
 
 /**
  * A closure which guarantees a background script connection.
@@ -37,7 +36,7 @@ const ensureBackground = (function() {
                     } else {
                         console.log(le.message);
                     }
-                } else if ((u as Message).type === SET_CODE) {
+                } else {
                     document.dispatchEvent(new CustomEvent(TO_CPTERM_SCRAPER, { detail: JSON.stringify(u) }));
                 }
             });
@@ -47,21 +46,14 @@ const ensureBackground = (function() {
     };
 })();
 
-/**
- * Inject the scraper script.
- */
-function inject() {
-    const script = document.createElement("script");
-    script.src = browser.runtime.getURL("scraper.js");
-    (document.head || document.documentElement).appendChild(script);
-    script.onload = () => {
-        document.addEventListener(FROM_CPTERM_SCRAPER, (e) => {
-            if (e instanceof CustomEvent) {
-                // everything from the scraper can go to the bg script
-                ensureBackground().postMessage(JSON.parse(e.detail));
-            }
-        });
-    };
-}
-
-inject();
+const script = document.createElement("script");
+script.src = browser.runtime.getURL("scraper.js");
+(document.head ?? document.documentElement).appendChild(script);
+script.onload = () => {
+    document.addEventListener(FROM_CPTERM_SCRAPER, (e) => {
+        if (e instanceof CustomEvent) {
+            // everything from the scraper can go to the bg script
+            ensureBackground().postMessage(JSON.parse(e.detail));
+        }
+    });
+};

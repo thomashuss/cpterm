@@ -46,7 +46,7 @@
     <table>
         <tbody>
             <tr>
-                <td><label for="write_code_to_temp_file">Write code to temporary files?</label></td>
+                <td><label for="write_code_to_temp_file">Write code to a temporary file?</label></td>
                 <td><input type="checkbox" id="write_code_to_temp_file" class="pref" checked="" /></td>
             </tr>
             <tr>
@@ -67,7 +67,7 @@
                 <td><input type="checkbox" id="reload_problem" class="pref" /></td>
             </tr>
             <tr>
-                <td><label for="write_problem_to_temp_file">Write problem statements to temporary files?</label></td>
+                <td><label for="write_problem_to_temp_file">Write problem statements to a temporary file?</label></td>
                 <td><input type="checkbox" id="write_problem_to_temp_file" class="pref" checked="" /></td>
             </tr>
             <tr>
@@ -116,6 +116,22 @@
             <tr>
                 <td><label for="post_problem_hook">Script to run after opening problem</label></td>
                 <td><input type="text" id="post_problem_hook" class="pref" /></td>
+            </tr>
+            <tr>
+                <td><label for="use_command_server">Run a TCP server for external control?</label></td>
+                <td><input type="checkbox" id="use_command_server" class="pref" /></td>
+            </tr>
+            <tr>
+                <td><label for="command_server_port">TCP port</label></td>
+                <td><input type="number" id="command_server_port" class="pref" min="0" max="65535" value="50000" /></td>
+            </tr>
+            <tr>
+                <td><label for="write_test_case_to_temp_file">Write test cases to a temporary file?</label></td>
+                <td><input type="checkbox" id="write_test_case_to_temp_file" class="pref" checked="" /></td>
+            </tr>
+            <tr>
+                <td><label for="test_case_file_path">Test case file prefix (excluding extension)</label></td>
+                <td><input type="text" id="test_case_file_path" class="pref" /></td>
             </tr>
             <tr>
                 <td></td>

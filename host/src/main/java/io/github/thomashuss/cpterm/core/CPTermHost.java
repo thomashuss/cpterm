@@ -21,26 +21,28 @@ import io.github.thomashuss.cpterm.artifacts.code.Watcher;
 import io.github.thomashuss.cpterm.artifacts.html.ConversionException;
 import io.github.thomashuss.cpterm.artifacts.html.Converter;
 import io.github.thomashuss.cpterm.artifacts.html.ExternalConverter;
+import io.github.thomashuss.cpterm.core.message.Command;
 import io.github.thomashuss.cpterm.core.message.LogEntry;
 import io.github.thomashuss.cpterm.core.message.Message;
 import io.github.thomashuss.cpterm.core.message.NewProblem;
 import io.github.thomashuss.cpterm.core.message.SetCode;
 import io.github.thomashuss.cpterm.core.message.SetPrefs;
+import io.github.thomashuss.cpterm.core.message.TestResults;
 import io.github.thomashuss.cpterm.core.message.Version;
-import io.github.thomashuss.cpterm.nm.Host;
+import io.github.thomashuss.cpterm.ext.MessageServer;
+import io.github.thomashuss.cpterm.ext.NativeMessagingHost;
+import io.github.thomashuss.cpterm.ext.WaitingFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.awt.Desktop;
 import java.io.BufferedReader;
-import java.io.BufferedWriter;
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
+import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
+import java.io.PrintWriter;
+import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -48,16 +50,20 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 /**
  * Implements the core logic of the CPTerm native messaging host.
  */
 public class CPTermHost
-        extends Host<Message>
+        extends NativeMessagingHost<Message>
 {
     private static final Logger logger = LoggerFactory.getLogger(CPTermHost.class);
-    private static final Object lock = new Object();
     /**
      * Preferences key for the flag indicating whether to write the problem statement to a temporary file.
      */
@@ -168,6 +174,38 @@ public class CPTermHost
      */
     private static final String POST_PROBLEM_HOOK = "post_problem_hook";
     /**
+     * Preferences key for the flag indicating whether to run a command server.
+     */
+    private static final String USE_COMMAND_SERVER = "use_command_server";
+    /**
+     * Default value for the flag indicating whether to run a command server.
+     */
+    private static final String DEFAULT_USE_COMMAND_SERVER = "false";
+    /**
+     * Preferences key for the command server port.
+     */
+    private static final String COMMAND_SERVER_PORT = "command_server_port";
+    /**
+     * Default value for the command server port.
+     */
+    private static final String DEFAULT_COMMAND_SERVER_PORT = "50000";
+    /**
+     * Preferences key for the flag indicating whether to write test cases to temporary files.
+     */
+    private static final String TEST_CASE_TEMP = "write_test_case_to_temp_file";
+    /**
+     * Default value for the flag indicating whether to write test cases to temporary files.
+     */
+    private static final String DEFAULT_TEST_CASE_TEMP = "true";
+    /**
+     * Preferences key for the test case file prefix.
+     */
+    private static final String TEST_CASE_PATH = "test_case_file_path";
+    /**
+     * Matches non-alphanumeric characters.
+     */
+    private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^0-9A-Za-z]");
+    /**
      * Contains default properties for the program.
      */
     private static final Properties DEFAULTS = new Properties();
@@ -175,6 +213,7 @@ public class CPTermHost
     static {
         DEFAULTS.setProperty(CODE_FILE_PATH, "");
         DEFAULTS.setProperty(CODE_USE_TEMP_FILE, DEFAULT_CODE_USE_TEMP_FILE);
+        DEFAULTS.setProperty(COMMAND_SERVER_PORT, DEFAULT_COMMAND_SERVER_PORT);
         DEFAULTS.setProperty(DEFAULT_PROBLEM_CONVERTER, DEFAULT_DEFAULT_PROBLEM_CONVERTER);
         DEFAULTS.setProperty(EDITOR, "");
         DEFAULTS.setProperty(LIBREOFFICE_ARGS, "");
@@ -189,9 +228,13 @@ public class CPTermHost
         DEFAULTS.setProperty(RAW_HTML_SHOULD_RENDER_SVG, DEFAULT_RAW_HTML_SHOULD_RENDER_SVG);
         DEFAULTS.setProperty(RELOAD_PROBLEM, DEFAULT_RELOAD_PROBLEM);
         DEFAULTS.setProperty(RENDER_PROBLEM, DEFAULT_RENDER_PROBLEM);
+        DEFAULTS.setProperty(TEST_CASE_PATH, "");
+        DEFAULTS.setProperty(TEST_CASE_TEMP, DEFAULT_TEST_CASE_TEMP);
+        DEFAULTS.setProperty(USE_COMMAND_SERVER, DEFAULT_USE_COMMAND_SERVER);
         try (InputStream is = CPTermHost.class.getClassLoader().getResourceAsStream("project.properties")) {
             DEFAULTS.load(is);
         } catch (IOException ignored) {
+            DEFAULTS.setProperty("version", "");
         }
     }
 
@@ -230,9 +273,17 @@ public class CPTermHost
      */
     private CodeFileWatcher codeFileWatcher;
     /**
-     * URL of last generated problem file.
+     * Origin URL of last generated problem file.
      */
     private String lastUrl;
+    /**
+     * Running command server.
+     */
+    private MessageServer messageServer;
+    /**
+     * Currently waiting on a response from the extension.
+     */
+    private volatile WaitingFuture<? extends Message> awaiting;
 
     public CPTermHost()
     {
@@ -249,6 +300,22 @@ public class CPTermHost
         } finally {
             h.quit();
         }
+    }
+
+    /**
+     * Replace all non-alphanumeric characters in the string.
+     *
+     * @param name to sanitize
+     * @return sanitized string
+     */
+    private static String sanitizeFileName(String name)
+    {
+        return NON_ALPHANUMERIC.matcher(name).replaceAll("_");
+    }
+
+    private static String stringOrBlank(Object o)
+    {
+        return o == null ? "" : o.toString();
     }
 
     /**
@@ -302,6 +369,14 @@ public class CPTermHost
                     defaultConverter = null;
             }
         }
+        if (messageServer == null && Boolean.parseBoolean(prop.getProperty(USE_COMMAND_SERVER))) {
+            int port;
+            try {
+                port = Integer.parseInt(prop.getProperty(COMMAND_SERVER_PORT));
+                (messageServer = new CommandServer(port)).start();
+            } catch (NumberFormatException ignored) {
+            }
+        }
     }
 
     /**
@@ -344,8 +419,6 @@ public class CPTermHost
         if (codeFileWatcher != null) {
             codeFileWatcher.stop();
         }
-        codeFile.clean();
-        problemFile.clean();
 
         String url = np.getUrl();
         Path pp = null;
@@ -364,8 +437,8 @@ public class CPTermHost
                 err("Conversion error", e);
                 return;
             }
-            lastUrl = url;
         }
+        lastUrl = url;
 
         Path cp = null;
         try {
@@ -398,8 +471,10 @@ public class CPTermHost
         if (codeFileWatcher != null) {
             codeFileWatcher.stop();
         }
-        codeFile.clean();
-        problemFile.clean();
+
+        if (messageServer != null) {
+            messageServer.stop();
+        }
 
         for (Path p : cleanable) {
             try {
@@ -453,12 +528,118 @@ public class CPTermHost
     @Override
     public boolean received(Message message)
     {
-        if (message instanceof NewProblem) {
-            startProblem((NewProblem) message);
-        } else if (message instanceof SetPrefs) {
-            setPrefs(((SetPrefs) message).getPrefs());
+        if (awaiting != null && awaiting.offer(message)) {
+            awaiting = null;
+        } else {
+            if (message instanceof NewProblem) {
+                startProblem((NewProblem) message);
+            } else if (message instanceof SetPrefs) {
+                setPrefs(((SetPrefs) message).getPrefs());
+            }
         }
         return true;
+    }
+
+    /**
+     * Send a command to the extension for which a response is expected.
+     *
+     * @param cmd command
+     * @param f   future waiting on response
+     * @return {@code true} if command was sent, {@code false} otherwise
+     */
+    private boolean sendAsyncCommand(String cmd, WaitingFuture<? extends Message> f)
+    {
+        awaiting = f;
+        try {
+            send(new Command(cmd));
+        } catch (IOException e) {
+            err("Could not send command", e);
+            awaiting = null;
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Write the test case artifact (input, output, expected) to a file.
+     *
+     * @param s    content of artifact
+     * @param name name of test case
+     * @param type type of artifact
+     * @throws IOException if an I/O error occurs
+     */
+    private Path saveTestCaseArtifact(String s, String name, String type)
+    throws IOException
+    {
+        if (s != null && !s.isEmpty()) {
+            Path p = createScratchFile(Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
+                            ? "" : prop.getProperty(TEST_CASE_PATH),
+                    name + '_' + type + ".txt");
+            try (PrintWriter pw = new PrintWriter(p.toFile())) {
+                pw.println(s);
+            }
+            return p;
+        }
+        return null;
+    }
+
+    /**
+     * Write test cases to files and output their locations in a tab-separated format.
+     *
+     * @param f   providing the test cases
+     * @param out for writing terminal-friendly output
+     */
+    private void saveTestCases(Future<TestResults> f, PrintWriter out)
+    {
+        try {
+            TestResults r = f.get(1L, TimeUnit.MINUTES);
+            String error = r.getError();
+            if (error == null) {
+                Map<String, TestResults.TestCase> cases = r.getCases();
+                for (Map.Entry<String, TestResults.TestCase> e : cases.entrySet()) {
+                    String name = '_' + sanitizeFileName(e.getKey());
+                    TestResults.TestCase tc = e.getValue();
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")) + '\t');
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")) + '\t');
+                    out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")));
+                }
+            } else {
+                out.println(error);
+            }
+        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+            out.println(e);
+            err("Test cases could not be retrieved", e);
+        } catch (IOException e) {
+            out.println(e);
+            err("Test cases could not saved", e);
+        }
+    }
+
+    /**
+     * Create a scratch file with the path as the concatenation of prefix and suffix, or as a
+     * temporary file with the suffix if prefix is the blank string.
+     *
+     * @param prefix absolute path to prefix, or blank for temp file
+     * @param suffix to be appended to prefix, or the end of the temp file path
+     * @return {@link Path} to new file
+     * @throws IOException if there was a problem creating a temp file
+     */
+    private Path createScratchFile(String prefix, String suffix)
+    throws IOException
+    {
+        Path path;
+        if (prefix.isEmpty()) {
+            path = Files.createTempFile("cpterm_", suffix);
+            cleanable.add(path);
+        } else {
+            path = Paths.get(prefix + suffix);
+            try {
+                Files.createFile(path);
+            } catch (FileAlreadyExistsException ignored) {
+            }
+        }
+        logger.info("Using scratch file {}", path);
+        return path;
     }
 
     private class CodeFileWatcher
@@ -480,10 +661,8 @@ public class CPTermHost
         private void write(String code)
         throws IOException
         {
-            try (FileOutputStream fos = new FileOutputStream(file);
-                 OutputStreamWriter osw = new OutputStreamWriter(fos);
-                 BufferedWriter bw = new BufferedWriter(osw)) {
-                bw.write(code);
+            try (PrintWriter pw = new PrintWriter(file)) {
+                pw.write(code);
             }
         }
 
@@ -494,9 +673,7 @@ public class CPTermHost
         protected void modified()
         {
             String lines;
-            try (FileInputStream fis = new FileInputStream(file);
-                 InputStreamReader isr = new InputStreamReader(fis);
-                 BufferedReader br = new BufferedReader(isr)) {
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
                 lines = br.lines().collect(Collectors.joining("\n"));
             } catch (IOException e) {
                 err("Could not read file", e);
@@ -510,6 +687,33 @@ public class CPTermHost
         }
     }
 
+    private class CommandServer
+            extends MessageServer
+    {
+        private CommandServer(int port)
+        {
+            super(port);
+        }
+
+        @Override
+        public void received(String in, PrintWriter out)
+        {
+            if (Command.RUN.equals(in) || Command.SUBMIT.equals(in)) {
+                WaitingFuture<TestResults> f = new WaitingFuture<TestResults>()
+                {
+                    @Override
+                    protected TestResults offered(Object o)
+                    {
+                        return o instanceof TestResults ? (TestResults) o : null;
+                    }
+                };
+                if (sendAsyncCommand(in, f)) {
+                    saveTestCases(f, out);
+                }
+            }
+        }
+    }
+
     private class ScratchFile
     {
         private final String tempKey;
@@ -517,7 +721,7 @@ public class CPTermHost
         private final String handlerKey;
         private Path path;
         private String lastPrefix;
-        private boolean isTemp;
+        private boolean temp;
 
         /**
          * Create a new interface to a scratch file.
@@ -534,6 +738,28 @@ public class CPTermHost
         }
 
         /**
+         * Create a blank scratch file with the specified prefix.  An old file is added
+         * to the deletion list if needed.
+         *
+         * @param prefix entire path before {@code suffix}
+         * @param suffix should be appended to the file name
+         * @return path to newly created file
+         * @throws IOException if there was a problem creating a temp file
+         */
+        private Path create(String prefix, String suffix)
+        throws IOException
+        {
+            if (!temp && path != null && prefix.equals(lastPrefix)) {
+                cleanable.add(path);
+            }
+            temp = prefix.isEmpty();
+            if (!temp) {
+                lastPrefix = prefix;
+            }
+            return path = createScratchFile(prefix, suffix);
+        }
+
+        /**
          * Create a blank scratch file according to preferences set by the user.  An old file
          * is added to the deletion list if needed.
          *
@@ -541,57 +767,24 @@ public class CPTermHost
          * @return path to newly created file
          * @throws IOException if there was a problem creating a temp file
          */
-        private synchronized Path create(String suffix)
+        private Path create(String suffix)
         throws IOException
         {
-            String prefix = null;
-            if (!Boolean.parseBoolean(prop.getProperty(tempKey))) {
-                prefix = prop.getProperty(pathKey);
-            }
-            if (prefix == null || prefix.isEmpty()) {
-                if (isTemp && path != null) {
-                    cleanable.add(path);
-                }
-                isTemp = true;
-                path = Files.createTempFile("cpterm_", suffix);
-            } else {
-                if (!isTemp && path != null && prefix.equals(lastPrefix)) {
-                    cleanable.add(path);
-                }
-                isTemp = false;
-                lastPrefix = prefix;
-                path = Paths.get(prefix + suffix);
-            }
-            logger.info("Using scratch file {}", path);
-            return path;
-        }
-
-        /**
-         * Add the existing file to the deletion list if needed.
-         */
-        private synchronized void clean()
-        {
-            if (isTemp && path != null) {
-                cleanable.add(path);
-            }
-            path = null;
+            return create(Boolean.parseBoolean(prop.getProperty(tempKey)) ? "" : prop.getProperty(pathKey), suffix);
         }
 
         /**
          * Open the file with its handler as defined in {@link #prop}.  Use {@link Desktop} if no handler is set.
          */
-        private synchronized void open()
+        private void open()
         {
-            String handler;
-            handler = prop.getProperty(handlerKey);
+            String handler = handlerKey != null ? prop.getProperty(handlerKey) : "";
             if (handler.isEmpty()) {
-                synchronized (lock) {
-                    if (hasDesktop()) {
-                        try {
-                            desktop.open(path.toFile());
-                        } catch (IOException e) {
-                            err("Unable to open file with desktop", e);
-                        }
+                if (hasDesktop()) {
+                    try {
+                        desktop.open(path.toFile());
+                    } catch (IOException e) {
+                        err("Unable to open file with desktop", e);
                     }
                 }
             } else {
