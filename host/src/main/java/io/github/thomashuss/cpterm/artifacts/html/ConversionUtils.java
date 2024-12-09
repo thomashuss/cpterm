@@ -19,7 +19,7 @@ package io.github.thomashuss.cpterm.artifacts.html;
 import org.apache.batik.transcoder.TranscoderException;
 import org.apache.batik.transcoder.TranscoderInput;
 import org.apache.batik.transcoder.TranscoderOutput;
-import org.apache.batik.transcoder.image.JPEGTranscoder;
+import org.apache.batik.transcoder.image.PNGTranscoder;
 import org.apache.batik.util.SVGConstants;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -29,10 +29,17 @@ import org.jsoup.select.Elements;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.imageio.ImageIO;
+import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
 import java.io.StringReader;
+import java.nio.ByteBuffer;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Base64;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 /**
  * Utility methods shared by several convertors.
@@ -47,11 +54,9 @@ class ConversionUtils
             .addEnforcedAttribute("svg", "xmlns", SVGConstants.SVG_NAMESPACE_URI)
             .addProtocols("img", "src", "data"));
     private static final Base64.Encoder b64 = Base64.getEncoder();
-    private static final JPEGTranscoder jpegTranscoder = new JPEGTranscoder();
-
-    static {
-        jpegTranscoder.addTranscodingHint(JPEGTranscoder.KEY_QUALITY, 0.95f);
-    }
+    private static final PNGTranscoder pngTranscoder = new PNGTranscoder();
+    private static final int PNG_SCALAR = 4;
+    private static final Pattern NUMBERS = Pattern.compile("[0-9.]+");
 
     /**
      * Clean the {@link Document} using a Jsoup {@link Cleaner}, but leave SVG elements unchanged.
@@ -85,13 +90,14 @@ class ConversionUtils
     }
 
     /**
-     * Render all SVG drawings in {@code root} to JPEG, replacing the SVG elements with IMG elements pointing to
-     * a base64-encoded JPEG.
+     * Render all SVG drawings in {@code root} to PNG, replacing the SVG elements with IMG elements pointing to
+     * a base64-encoded PNG.
      *
      * @param root parent of the SVG elements
      */
     static void renderSvgElements(Element root)
     {
+        Matcher m = NUMBERS.matcher("");
         for (Element el : root.getElementsByTag("svg")) {
             if (el.hasAttr("width") && el.hasAttr("height")) {
                 Element parent = el.parent();
@@ -99,21 +105,38 @@ class ConversionUtils
                     parent.removeAttr("style");
                 }
 
-                ByteBufferOutputStream os = new ByteBufferOutputStream();
-                try {
-                    jpegTranscoder.transcode(new TranscoderInput(new StringReader(el.outerHtml())),
-                            new TranscoderOutput(os));
-                } catch (TranscoderException e) {
-                    logger.error("Could not render SVG to JPEG", e);
+                m.reset(el.attr("width"));
+                if (m.find()) {
+                    el.attr("width", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+                }
+                m.reset(el.attr("height"));
+                if (m.find()) {
+                    el.attr("height", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
                 }
 
+                ByteBufferOutputStream os = new ByteBufferOutputStream();
+                try {
+                    pngTranscoder.transcode(new TranscoderInput(new StringReader(el.outerHtml())),
+                            new TranscoderOutput(os));
+                } catch (TranscoderException e) {
+                    logger.error("Could not render SVG to PNG", e);
+                    continue;
+                }
+
+                ByteBuffer imgBuffer = os.toByteBuffer();
                 Element replacement = new Element("img")
                         .attr("alt", "Converted image")
-                        .attr("src", "data:image/jpeg;base64,"
-                                + new String(b64.encode(os.toByteBuffer()).array(), StandardCharsets.ISO_8859_1));
-                if (el.hasAttr("style")) {
-                    replacement.attr("style", el.attr("style"));
+                        .attr("src", "data:image/png;base64,"
+                                + new String(b64.encode(imgBuffer).array(), StandardCharsets.ISO_8859_1));
+
+                try {
+                    BufferedImage img = ImageIO.read(new ByteArrayInputStream(imgBuffer.array()));
+                    replacement.attr("width", (((float) img.getWidth()) / PNG_SCALAR) + "px");
+                    replacement.attr("height", (((float) img.getHeight()) / PNG_SCALAR) + "px");
+                } catch (IOException e) {
+                    logger.error("Could not read PNG to obtain dimensions", e);
                 }
+
                 el.replaceWith(replacement);
             } else {
                 el.remove();
