@@ -129,13 +129,13 @@ public class CPTermHost
      */
     private static final String DEFAULT_RAW_HTML_SHOULD_RENDER_SVG = "false";
     /**
-     * Preferences key for the default problem converter.
+     * Preferences key for the problem converter.
      */
-    private static final String DEFAULT_PROBLEM_CONVERTER = "default_problem_converter";
+    private static final String PROBLEM_CONVERTER = "problem_converter";
     /**
-     * Default value for the default problem converter.
+     * Default value for the problem converter.
      */
-    private static final String DEFAULT_DEFAULT_PROBLEM_CONVERTER = OPEN_HTML_TO_PDF;
+    private static final String DEFAULT_PROBLEM_CONVERTER = OPEN_HTML_TO_PDF;
     /**
      * Preferences key for the problem file suffix.
      */
@@ -214,7 +214,7 @@ public class CPTermHost
         DEFAULTS.setProperty(CODE_FILE_PATH, "");
         DEFAULTS.setProperty(CODE_USE_TEMP_FILE, DEFAULT_CODE_USE_TEMP_FILE);
         DEFAULTS.setProperty(COMMAND_SERVER_PORT, DEFAULT_COMMAND_SERVER_PORT);
-        DEFAULTS.setProperty(DEFAULT_PROBLEM_CONVERTER, DEFAULT_DEFAULT_PROBLEM_CONVERTER);
+        DEFAULTS.setProperty(PROBLEM_CONVERTER, DEFAULT_PROBLEM_CONVERTER);
         DEFAULTS.setProperty(EDITOR, "");
         DEFAULTS.setProperty(LIBREOFFICE_ARGS, "");
         DEFAULTS.setProperty(LIBREOFFICE_PATH, "");
@@ -257,9 +257,9 @@ public class CPTermHost
      */
     private final Properties prop = new Properties(DEFAULTS);
     /**
-     * Default converter as set in properties.
+     * Converter as set in properties.
      */
-    private Converter defaultConverter = Converter.OPEN_HTML_TO_PDF;
+    private Converter converter = Converter.OPEN_HTML_TO_PDF;
     /**
      * Used for opening files.
      */
@@ -350,23 +350,23 @@ public class CPTermHost
     {
         prop.putAll(p);
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM))) {
-            switch (prop.getProperty(DEFAULT_PROBLEM_CONVERTER)) {
+            switch (prop.getProperty(PROBLEM_CONVERTER)) {
                 case OPEN_HTML_TO_PDF:
-                    defaultConverter = Converter.OPEN_HTML_TO_PDF;
+                    converter = Converter.OPEN_HTML_TO_PDF;
                     break;
                 case PANDOC:
-                    defaultConverter = configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
+                    converter = configExternalConverter(Converter.PANDOC, PANDOC_PATH, PANDOC_ARGS);
                     break;
                 case LIBREOFFICE:
-                    defaultConverter = configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH,
+                    converter = configExternalConverter(Converter.LIBREOFFICE, LIBREOFFICE_PATH,
                             LIBREOFFICE_ARGS);
                     break;
                 case RAW_HTML:
                     Converter.RAW_HTML.setRenderSvg(Boolean.parseBoolean(prop.getProperty(RAW_HTML_SHOULD_RENDER_SVG)));
-                    defaultConverter = Converter.RAW_HTML;
+                    converter = Converter.RAW_HTML;
                     break;
                 default:
-                    defaultConverter = null;
+                    converter = null;
             }
         }
         if (messageServer == null && Boolean.parseBoolean(prop.getProperty(USE_COMMAND_SERVER))) {
@@ -410,9 +410,9 @@ public class CPTermHost
      */
     public void startProblem(NewProblem np)
     {
-        if (defaultConverter == null) {
-            err("Default problem converter is improperly configured", null);
-            logger.info("Problem converter is set to {}", prop.getProperty(DEFAULT_PROBLEM_CONVERTER));
+        if (converter == null) {
+            err("Problem converter is improperly configured", null);
+            logger.info("Problem converter is set to {}", prop.getProperty(PROBLEM_CONVERTER));
             return;
         }
 
@@ -431,7 +431,7 @@ public class CPTermHost
                 return;
             }
             try {
-                defaultConverter.convert(np.getProblem(), url, pp.toAbsolutePath());
+                converter.convert(np.getProblem(), url, pp.toAbsolutePath());
                 problemFile.open();
             } catch (ConversionException e) {
                 try {
