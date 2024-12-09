@@ -20,8 +20,9 @@
 <head>
     <meta charset="utf-8">
     <meta name="color-scheme" content="dark light">
-    <script type="text/javascript" src="options.js"></script>
-    <style type="text/css">
+    <title>CPTerm Options</title>
+    <script src="options.js"></script>
+    <style>
         td {
             padding: 5px;
         }
@@ -47,36 +48,36 @@
         <tbody>
             <tr>
                 <td><label for="write_code_to_temp_file">Write code to a temporary file?</label></td>
-                <td><input type="checkbox" id="write_code_to_temp_file" class="pref" checked="" /></td>
+                <td><input type="checkbox" id="write_code_to_temp_file" class="pref" checked=""></td>
             </tr>
             <tr>
                 <td><label for="code_file_path">Path to code file (excluding extension)</label></td>
-                <td><input type="text" id="code_file_path" class="pref" /></td>
+                <td><input type="text" id="code_file_path" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="editor">Path to code editor (leave blank for OS default)</label></td>
-                <td><input type="text" id="editor" class="pref" /></td>
+                <td><input type="text" id="editor" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="render_problem">Render problem statements to a file?</label></td>
-                <td><input type="checkbox" id="render_problem" class="pref" checked="" /></td>
+                <td><input type="checkbox" id="render_problem" class="pref" checked=""></td>
             </tr>
             <tr>
                 <td><label for="reload_problem">Reload problem statements when the same URL is opened twice?</label>
                 </td>
-                <td><input type="checkbox" id="reload_problem" class="pref" /></td>
+                <td><input type="checkbox" id="reload_problem" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="write_problem_to_temp_file">Write problem statements to a temporary file?</label></td>
-                <td><input type="checkbox" id="write_problem_to_temp_file" class="pref" checked="" /></td>
+                <td><input type="checkbox" id="write_problem_to_temp_file" class="pref" checked=""></td>
             </tr>
             <tr>
                 <td><label for="problem_file_path">Path to problem statement file (excluding extension)</label></td>
-                <td><input type="text" id="problem_file_path" class="pref" /></td>
+                <td><input type="text" id="problem_file_path" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="problem_file_suffix">Problem statement file extension</label></td>
-                <td><input type="text" id="problem_file_suffix" class="pref" value=".pdf" /></td>
+                <td><input type="text" id="problem_file_suffix" class="pref" value=".pdf"></td>
             </tr>
             <tr>
                 <td><label for="default_problem_converter">Tool to use for rendering problem statement files</label>
@@ -90,48 +91,48 @@
             </tr>
             <tr>
                 <td><label for="pandoc_path">Path to Pandoc</label></td>
-                <td><input type="text" id="pandoc_path" class="pref" /></td>
+                <td><input type="text" id="pandoc_path" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="pandoc_args">Additional command line arguments to Pandoc</label></td>
-                <td><input type="text" id="pandoc_args" class="pref" /></td>
+                <td><input type="text" id="pandoc_args" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="libreoffice_path">Path to LibreOffice</label></td>
-                <td><input type="text" id="libreoffice_path" class="pref" /></td>
+                <td><input type="text" id="libreoffice_path" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="libreoffce_args">Additional command line arguments to LibreOffice</label></td>
-                <td><input type="text" id="libreoffce_args" class="pref" /></td>
+                <td><input type="text" id="libreoffce_args" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="raw_html_should_render_svg">Render SVG in raw HTML output?</label></td>
-                <td><input type="checkbox" id="raw_html_should_render_svg" class="pref" /></td>
+                <td><input type="checkbox" id="raw_html_should_render_svg" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="problem_viewer">Path to problem statement viewer (leave blank for OS default)</label>
                 </td>
-                <td><input type="text" id="problem_viewer" class="pref" /></td>
+                <td><input type="text" id="problem_viewer" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="post_problem_hook">Script to run after opening problem</label></td>
-                <td><input type="text" id="post_problem_hook" class="pref" /></td>
+                <td><input type="text" id="post_problem_hook" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="use_command_server">Run a TCP server for external control?</label></td>
-                <td><input type="checkbox" id="use_command_server" class="pref" /></td>
+                <td><input type="checkbox" id="use_command_server" class="pref"></td>
             </tr>
             <tr>
                 <td><label for="command_server_port">TCP port</label></td>
-                <td><input type="number" id="command_server_port" class="pref" min="0" max="65535" value="50000" /></td>
+                <td><input type="number" id="command_server_port" class="pref" min="0" max="65535" value="50000"></td>
             </tr>
             <tr>
                 <td><label for="write_test_case_to_temp_file">Write test cases to a temporary file?</label></td>
-                <td><input type="checkbox" id="write_test_case_to_temp_file" class="pref" checked="" /></td>
+                <td><input type="checkbox" id="write_test_case_to_temp_file" class="pref" checked=""></td>
             </tr>
             <tr>
                 <td><label for="test_case_file_path">Test case file prefix (excluding extension)</label></td>
-                <td><input type="text" id="test_case_file_path" class="pref" /></td>
+                <td><input type="text" id="test_case_file_path" class="pref"></td>
             </tr>
             <tr>
                 <td></td>
