@@ -93,52 +93,55 @@ class ConversionUtils
      */
     static void renderSvgElements(Element root, boolean scale)
     {
-        Matcher m = null;
-        if (scale) {
-            m = FLOAT_P.matcher("");
-        }
-        for (Element el : root.getElementsByTag("svg")) {
-            if (el.hasAttr("width") && el.hasAttr("height")) {
-                Element parent = el.parent();
-                if (parent != null && parent.tagName().equals("span")) {
-                    parent.removeAttr("style");
-                }
-
-                if (scale) {
-                    // SVG dimensions are very likely in a pixel-based unit, so we should be able to
-                    // multiply that value by a scalar prior to rendering, and divide by pixels of the
-                    // rendered image to display a scaled image at its preferred size.  If viewport
-                    // units are used, we are screwed.
-                    m.reset(el.attr("width"));
-                    if (m.find()) {
-                        el.attr("width", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+        Elements svgs = root.getElementsByTag("svg");
+        if (!svgs.isEmpty()) {
+            Matcher m = scale ? FLOAT_P.matcher("") : null;
+            ByteBufferOutputStream os = new ByteBufferOutputStream();
+            TranscoderInput transcodeIn = new TranscoderInput();
+            TranscoderOutput transcodeOut = new TranscoderOutput(os);
+            for (Element el : svgs) {
+                if (el.hasAttr("width") && el.hasAttr("height")) {
+                    Element parent = el.parent();
+                    if (parent != null && parent.tagName().equals("span")) {
+                        parent.removeAttr("style");
                     }
-                    m.reset(el.attr("height"));
-                    if (m.find()) {
-                        el.attr("height", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+
+                    if (scale) {
+                        // SVG dimensions are very likely in a pixel-based unit, so we should be able to
+                        // multiply that value by a scalar prior to rendering, and divide by pixels of the
+                        // rendered image to display a scaled image at its preferred size.  If viewport
+                        // units are used, we are screwed.
+                        m.reset(el.attr("width"));
+                        if (m.find()) {
+                            el.attr("width", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+                        }
+                        m.reset(el.attr("height"));
+                        if (m.find()) {
+                            el.attr("height", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
+                        }
                     }
-                }
 
-                ByteBufferOutputStream os = new ByteBufferOutputStream();
-                try {
-                    pngTranscoder.transcode(new TranscoderInput(new StringReader(el.outerHtml())),
-                            new TranscoderOutput(os));
-                } catch (TranscoderException e) {
-                    logger.error("Could not render SVG to PNG", e);
-                    continue;
-                }
+                    transcodeIn.setReader(new StringReader(el.outerHtml()));
+                    try {
+                        pngTranscoder.transcode(transcodeIn, transcodeOut);
+                    } catch (TranscoderException e) {
+                        logger.error("Could not render SVG to PNG", e);
+                        continue;
+                    }
 
-                Element replacement = new Element("img")
-                        .attr("alt", "Converted image")
-                        .attr("src", "data:image/png;base64,"
-                                + new String(b64.encode(os.toByteBuffer()).array(), StandardCharsets.ISO_8859_1));
-                if (scale) {
-                    replacement.attr("width", (pngTranscoder.getWidth() / PNG_SCALAR) + "px")
-                            .attr("height", (pngTranscoder.getHeight() / PNG_SCALAR) + "px");
+                    Element replacement = new Element("img")
+                            .attr("alt", "Converted image")
+                            .attr("src", "data:image/png;base64,"
+                                    + new String(b64.encode(os.toByteBuffer()).array(), StandardCharsets.ISO_8859_1));
+                    os.reset();
+                    if (scale) {
+                        replacement.attr("width", (pngTranscoder.getWidth() / PNG_SCALAR) + "px")
+                                .attr("height", (pngTranscoder.getHeight() / PNG_SCALAR) + "px");
+                    }
+                    el.replaceWith(replacement);
+                } else {
+                    el.remove();
                 }
-                el.replaceWith(replacement);
-            } else {
-                el.remove();
             }
         }
     }
