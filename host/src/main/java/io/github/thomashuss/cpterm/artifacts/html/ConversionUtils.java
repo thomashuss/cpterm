@@ -106,16 +106,22 @@ class ConversionUtils
                         parent.removeAttr("style");
                     }
 
-                    if (scale) {
-                        // SVG dimensions are very likely in a pixel-based unit, so we should be able to
-                        // multiply that value by a scalar prior to rendering, and divide by pixels of the
-                        // rendered image to display a scaled image at its preferred size.  If viewport
-                        // units are used, we are screwed.
-                        m.reset(el.attr("width"));
+                    String width = el.attr("width");
+                    String height = el.attr("height");
+                    boolean scaled = scale && !width.endsWith("%") && !width.endsWith("vw") && !width.endsWith("vh")
+                            && !width.endsWith("vmin") && !width.endsWith("vmax")
+                            && !height.endsWith("%") && !height.endsWith("vw") && !height.endsWith("vh")
+                            && !height.endsWith("vmin") && !height.endsWith("vmax");
+                    if (scaled) {
+                        // SVG dimensions are in a pixel-based unit, so we should be able to
+                        // multiply that value by a scalar prior to rendering, and divide by
+                        // pixels of the rendered image to display a scaled image at its
+                        // preferred size.
+                        m.reset(width);
                         if (m.find()) {
                             el.attr("width", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
                         }
-                        m.reset(el.attr("height"));
+                        m.reset(height);
                         if (m.find()) {
                             el.attr("height", m.replaceFirst(String.valueOf(Float.parseFloat(m.group()) * PNG_SCALAR)));
                         }
@@ -134,7 +140,7 @@ class ConversionUtils
                             .attr("src", "data:image/png;base64,"
                                     + new String(b64.encode(os.toByteBuffer()).array(), StandardCharsets.ISO_8859_1));
                     os.reset();
-                    if (scale) {
+                    if (scaled) {
                         replacement.attr("width", (pngTranscoder.getWidth() / PNG_SCALAR) + "px")
                                 .attr("height", (pngTranscoder.getHeight() / PNG_SCALAR) + "px");
                     }
