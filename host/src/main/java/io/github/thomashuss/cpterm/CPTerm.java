@@ -17,9 +17,11 @@
 package io.github.thomashuss.cpterm;
 
 import io.github.thomashuss.cpterm.core.CPTermHost;
+import io.github.thomashuss.cpterm.installer.Installer;
 import io.github.thomashuss.cpterm.installer.InstallerGUI;
 
 import java.io.IOException;
+import java.util.Arrays;
 
 public class CPTerm
 {
@@ -28,6 +30,10 @@ public class CPTerm
     {
         if (args.length == 0) {
             InstallerGUI.prompt();
+        } else if ("--install".equals(args[0])) {
+            Installer.installCLI(Arrays.asList(args).subList(1, args.length));
+        } else if ("--uninstall".equals(args[0])) {
+            Installer.uninstallCLI();
         } else {
             CPTermHost.run();
         }

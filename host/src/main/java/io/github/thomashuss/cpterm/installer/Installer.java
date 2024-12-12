@@ -27,6 +27,8 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
 
@@ -141,6 +143,66 @@ public class Installer
             return Paths.get(HOME, "Library", "Application Support", "cpterm");
         } else {
             return Paths.get(HOME, ".local", "share", "cpterm");
+        }
+    }
+
+    private static void printInstallUsage()
+    {
+        System.out.println("usage: java -jar cpterm.jar -b BROWSER [-b BROWSER...] [-d DIRECTORY]");
+        System.out.println("where BROWSER is one of `firefox', `chrome', or `chromium'" +
+                " and DIRECTORY is the install directory (set to default if not specified)");
+    }
+
+    public static void installCLI(List<String> args)
+    throws IOException
+    {
+        if (args.isEmpty()) {
+            printInstallUsage();
+            return;
+        }
+        Iterator<String> it = args.iterator();
+        ArrayList<Browser> browsers = new ArrayList<>(Math.max(1, args.size() / 2));
+        Path dir = null;
+        while (it.hasNext()) {
+            String s = it.next();
+            if (it.hasNext() && "-b".equals(s)) {
+                String b = it.next();
+                if ("firefox".equalsIgnoreCase(b)) {
+                    browsers.add(Browser.FIREFOX);
+                } else if ("chrome".equalsIgnoreCase(b)) {
+                    browsers.add(Browser.CHROME);
+                } else if ("chromium".equalsIgnoreCase(b)) {
+                    browsers.add(Browser.CHROMIUM);
+                } else {
+                    printInstallUsage();
+                    return;
+                }
+            } else if (it.hasNext() && "-d".equals(s)) {
+                dir = Paths.get(it.next());
+            } else {
+                printInstallUsage();
+                return;
+            }
+        }
+        if (dir == null) {
+            dir = getDefaultDir();
+        }
+        install(dir, browsers);
+        System.out.println("done");
+    }
+
+    public static void uninstallCLI()
+    throws IOException
+    {
+        Path installationFile = Installer.getInstallationFilePath();
+        if (installationFile == null) {
+            System.out.println("no installation file present");
+        } else {
+            if (Installer.uninstall(installationFile)) {
+                System.out.println("done");
+            } else {
+                System.out.println("error: some files could not be deleted");
+            }
         }
     }
 
