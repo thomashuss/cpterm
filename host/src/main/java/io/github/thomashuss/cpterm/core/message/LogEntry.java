@@ -16,25 +16,19 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public final class LogEntry
         extends Message
 {
+    @JsonProperty()
     private final String messageType;
+    @JsonProperty()
     private final String message;
 
     public LogEntry(String messageType, String message)
     {
         this.messageType = messageType;
         this.message = message;
-    }
-
-    public String getMessageType()
-    {
-        return messageType;
-    }
-
-    public String getMessage()
-    {
-        return message;
     }
 }

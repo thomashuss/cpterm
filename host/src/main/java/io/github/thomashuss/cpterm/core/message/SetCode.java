@@ -16,18 +16,16 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public final class SetCode
         extends Message
 {
+    @JsonProperty()
     private final String code;
 
     public SetCode(String code)
     {
         this.code = code;
-    }
-
-    public String getCode()
-    {
-        return code;
     }
 }

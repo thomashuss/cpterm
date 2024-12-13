@@ -16,13 +16,20 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public final class NewProblem
         extends Message
 {
+    @JsonProperty()
     private String problem;
+    @JsonProperty()
     private String code;
+    @JsonProperty()
     private String language;
+    @JsonProperty()
     private String url;
+    @JsonProperty()
     private String name;
 
     public String getProblem()
@@ -30,19 +37,9 @@ public final class NewProblem
         return problem;
     }
 
-    public void setProblem(String problem)
-    {
-        this.problem = problem;
-    }
-
     public String getCode()
     {
         return code;
-    }
-
-    public void setCode(String code)
-    {
-        this.code = code;
     }
 
     public String getLanguage()
@@ -50,19 +47,9 @@ public final class NewProblem
         return language;
     }
 
-    public void setLanguage(String language)
-    {
-        this.language = language;
-    }
-
     public String getUrl()
     {
         return url;
-    }
-
-    public void setUrl(String url)
-    {
-        this.url = url;
     }
 
     public String getName()
@@ -70,8 +57,4 @@ public final class NewProblem
         return name;
     }
 
-    public void setName(String name)
-    {
-        this.name = name;
-    }
 }

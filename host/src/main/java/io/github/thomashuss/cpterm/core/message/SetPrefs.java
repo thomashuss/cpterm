@@ -16,20 +16,18 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public final class SetPrefs
         extends Message
 {
+    @JsonProperty()
     private Map<String, String> prefs;
 
     public Map<String, String> getPrefs()
     {
         return prefs;
-    }
-
-    public void setPrefs(Map<String, String> prefs)
-    {
-        this.prefs = prefs;
     }
 }

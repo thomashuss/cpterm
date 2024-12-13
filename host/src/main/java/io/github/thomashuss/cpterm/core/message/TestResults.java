@@ -16,12 +16,16 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 import java.util.Map;
 
 public class TestResults
         extends Message
 {
+    @JsonProperty()
     private Map<String, TestCase> cases;
+    @JsonProperty()
     private String error;
 
     public String getError()
@@ -29,25 +33,18 @@ public class TestResults
         return error;
     }
 
-    public void setError(String error)
-    {
-        this.error = error;
-    }
-
     public Map<String, TestCase> getCases()
     {
         return cases;
     }
 
-    public void setCases(Map<String, TestCase> cases)
-    {
-        this.cases = cases;
-    }
-
     public static class TestCase
     {
+        @JsonProperty()
         private String input;
+        @JsonProperty()
         private String output;
+        @JsonProperty()
         private String expected;
 
         public String getExpected()
@@ -55,39 +52,14 @@ public class TestResults
             return expected;
         }
 
-        public void setExpected(String expected)
-        {
-            this.expected = expected;
-        }
-
         public String getOutput()
         {
             return output;
         }
 
-        public void setOutput(String output)
-        {
-            this.output = output;
-        }
-
         public String getInput()
         {
             return input;
-        }
-
-        public void setInput(String input)
-        {
-            this.input = input;
-        }
-
-        @Override
-        public String toString()
-        {
-            return "TestCase{" +
-                    "input='" + input + '\'' +
-                    ", output='" + output + '\'' +
-                    ", expected='" + expected + '\'' +
-                    '}';
         }
     }
 }

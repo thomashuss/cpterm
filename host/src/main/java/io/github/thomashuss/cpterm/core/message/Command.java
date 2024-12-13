@@ -16,20 +16,18 @@
 
 package io.github.thomashuss.cpterm.core.message;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
 public class Command
         extends Message
 {
     public static final String RUN = "run";
     public static final String SUBMIT = "submit";
+    @JsonProperty()
     private final String command;
 
     public Command(String command)
     {
         this.command = command;
-    }
-
-    public String getCommand()
-    {
-        return command;
     }
 }
