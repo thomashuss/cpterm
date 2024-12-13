@@ -24,11 +24,13 @@ export class NewProblem implements Message {
     readonly code: string;
     readonly language: string;
     readonly url: string;
+    readonly name: string;
 
-    constructor(problem: string, code: string, language: string, url: string) {
+    constructor(problem: string, code: string, language: string, url: string, name: string) {
         this.problem = problem;
         this.code = code;
         this.language = language;
         this.url = url;
+        this.name = name;
     }
 }

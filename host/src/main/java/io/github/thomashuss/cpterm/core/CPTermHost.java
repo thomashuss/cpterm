@@ -73,7 +73,7 @@ public class CPTermHost
      */
     private static final String DEFAULT_PROBLEM_USE_TEMP_FILE = "true";
     /**
-     * Preferences key for the path to the problem statement file if not using a temporary file.
+     * Preferences key for the path to the problem statement directory if not using a temporary file.
      */
     private static final String PROBLEM_FILE_PATH = "problem_file_path";
     /**
@@ -85,7 +85,7 @@ public class CPTermHost
      */
     private static final String DEFAULT_CODE_USE_TEMP_FILE = "true";
     /**
-     * Preferences key for the path to the problem code file if not using a temporary file.
+     * Preferences key for the path to the problem code directory if not using a temporary file.
      */
     private static final String CODE_FILE_PATH = "code_file_path";
     /**
@@ -198,7 +198,7 @@ public class CPTermHost
      */
     private static final String DEFAULT_TEST_CASE_TEMP = "true";
     /**
-     * Preferences key for the test case file prefix.
+     * Preferences key for the path to the test case directory if not using a temporary file.
      */
     private static final String TEST_CASE_PATH = "test_case_file_path";
     /**
@@ -276,6 +276,10 @@ public class CPTermHost
      * Origin URL of last generated problem file.
      */
     private String lastUrl;
+    /**
+     * Name of last problem.
+     */
+    private String lastName;
     /**
      * Running command server.
      */
@@ -421,11 +425,12 @@ public class CPTermHost
         }
 
         String url = np.getUrl();
+        lastName = np.getName();
         Path pp = null;
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
                 (Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
             try {
-                pp = problemFile.create(prop.getProperty(PROBLEM_FILE_SUFFIX));
+                pp = problemFile.create(lastName + prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
                 err("Failed to create problem file", e);
                 return;
@@ -445,7 +450,7 @@ public class CPTermHost
 
         Path cp = null;
         try {
-            cp = codeFile.create('.' + Languages.getExt(np.getLanguage()));
+            cp = codeFile.create(lastName + '.' + Languages.getExt(np.getLanguage()));
             codeFileWatcher = new CodeFileWatcher(cp);
             codeFileWatcher.write(np.getCode());
             codeFileWatcher.start();
@@ -577,7 +582,7 @@ public class CPTermHost
         if (s != null && !s.isEmpty()) {
             Path p = createScratchFile(Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
                             ? "" : prop.getProperty(TEST_CASE_PATH),
-                    name + '_' + type + ".txt");
+                    lastName + '_' + name + '_' + type + ".txt");
             try (PrintWriter pw = new PrintWriter(p.toFile())) {
                 pw.println(s);
             }
@@ -619,23 +624,22 @@ public class CPTermHost
     }
 
     /**
-     * Create a scratch file with the path as the concatenation of prefix and suffix, or as a
-     * temporary file with the suffix if prefix is the blank string.
+     * Create a new scratch file.
      *
-     * @param prefix absolute path to prefix, or blank for temp file
-     * @param suffix to be appended to prefix, or the end of the temp file path
+     * @param dir  absolute path to directory, or blank for temp file
+     * @param name file name including extension, or base name of temp file
      * @return {@link Path} to new file
      * @throws IOException if there was a problem creating a temp file
      */
-    private Path createScratchFile(String prefix, String suffix)
+    private Path createScratchFile(String dir, String name)
     throws IOException
     {
         Path path;
-        if (prefix.isEmpty()) {
-            path = Files.createTempFile("cpterm_", suffix);
+        if (dir.isEmpty()) {
+            path = Files.createTempFile("cpterm_", name.startsWith(".") ? name : '_' + name);
             cleanable.add(path);
         } else {
-            path = Paths.get(prefix + suffix);
+            path = Files.createDirectories(Paths.get(dir)).resolve(name);
             try {
                 Files.createFile(path);
             } catch (FileAlreadyExistsException ignored) {
@@ -723,8 +727,6 @@ public class CPTermHost
         private final String pathKey;
         private final String handlerKey;
         private Path path;
-        private String lastPrefix;
-        private boolean temp;
 
         /**
          * Create a new interface to a scratch file.
@@ -752,13 +754,6 @@ public class CPTermHost
         private Path create(String prefix, String suffix)
         throws IOException
         {
-            if (!temp && path != null && prefix.equals(lastPrefix)) {
-                cleanable.add(path);
-            }
-            temp = prefix.isEmpty();
-            if (!temp) {
-                lastPrefix = prefix;
-            }
             return path = createScratchFile(prefix, suffix);
         }
 

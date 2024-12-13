@@ -91,6 +91,10 @@ interface Scraper {
      */
     isProblem(): boolean;
     /**
+     * Get the problem name.
+     */
+    getName(): string;
+    /**
      * Get the problem code.
      */
     getCode(): string;
@@ -156,6 +160,7 @@ abstract class HasMonaco implements Scraper {
     }
 
     abstract isProblem(): boolean;
+    abstract getName(): string;
     abstract getProblem(): string;
     abstract getLanguage(): string;
     abstract runTestCases(): Promise<Record<string, TestCase>>;
@@ -165,6 +170,10 @@ abstract class HasMonaco implements Scraper {
 class HackerRank extends HasMonaco {
     isProblem(): boolean {
         return location.pathname.endsWith("problem");
+    }
+
+    getName(): string {
+        return location.pathname.match(/challenges\/([^/]+)/)?.at(1) ?? "";
     }
 
     getProblem(): string {
@@ -215,6 +224,10 @@ class LeetCode extends HasMonaco {
     isProblem(): boolean {
         return location.pathname.match(/\/problems\/.+\//) != null
             && (document.querySelector("div[data-track-load='description_content']") as HTMLElement | undefined)?.offsetParent != null;
+    }
+
+    getName(): string {
+        return location.pathname.match(/problems\/([^/]+)/)?.at(1) ?? "";
     }
 
     getProblem(): string {
@@ -390,7 +403,7 @@ function sendProblem(scraper: Scraper): boolean {
     const p = scraper.getProblem(), c = scraper.getCode(), l = scraper.getLanguage();
     // check if the page is ready
     if (p.length > 0 && c.length > 0) {
-        sendMessage(new NewProblem(p, c, l, location.href));
+        sendMessage(new NewProblem(p, c, l, location.href, scraper.getName()));
         return true;
     }
     return false;

@@ -23,6 +23,7 @@ public final class NewProblem
     private String code;
     private String language;
     private String url;
+    private String name;
 
     public String getProblem()
     {
@@ -62,5 +63,15 @@ public final class NewProblem
     public void setUrl(String url)
     {
         this.url = url;
+    }
+
+    public String getName()
+    {
+        return name;
+    }
+
+    public void setName(String name)
+    {
+        this.name = name;
     }
 }
