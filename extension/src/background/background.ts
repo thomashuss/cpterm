@@ -15,7 +15,7 @@
  */
 
 import browser from "webextension-polyfill";
-import { Message } from "../common/message";
+import { Message } from "../message/message";
 import { HostInterface } from "./host-interface";
 
 const host = new HostInterface();

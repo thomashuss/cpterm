@@ -14,18 +14,16 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Message } from "../common/message";
+import { Message } from "./message";
 
-export const LOG_ENTRY = "logEntry";
-export const ERROR = "error";
+export const COMMAND = "command";
+export const KEEP_ALIVE = "keepAlive";
 
-export class LogEntry implements Message {
-    readonly type = LOG_ENTRY;
-    readonly messageType: string = "";
-    readonly message: string = "";
+export class Command implements Message {
+    readonly type = COMMAND;
+    readonly command: string;
 
-    constructor(messageType: string, message: string) {
-        this.messageType = messageType;
-        this.message = message;
+    constructor(command: string) {
+        this.command = command;
     }
 }

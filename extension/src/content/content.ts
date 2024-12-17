@@ -16,8 +16,8 @@
 
 import browser from "webextension-polyfill";
 import { FROM_CPTERM_SCRAPER, TO_CPTERM_SCRAPER } from ".//const";
-import { Message } from "../common/message";
-import { ERROR, LOG_ENTRY, LogEntry } from "../common/log-entry";
+import { Message } from "../message/message";
+import { ERROR, LOG_ENTRY, LogEntry } from "../message/log-entry";
 
 /**
  * A closure which guarantees a background script connection.
@@ -47,7 +47,7 @@ const ensureBackground = (function() {
 })();
 
 const script = document.createElement("script");
-script.src = browser.runtime.getURL("scraper.js");
+script.src = browser.runtime.getURL("scraper-inject.js");
 (document.head ?? document.documentElement).appendChild(script);
 script.onload = () => {
     document.addEventListener(FROM_CPTERM_SCRAPER, (e) => {

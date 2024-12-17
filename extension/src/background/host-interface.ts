@@ -14,9 +14,9 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-import { Message } from "../common/message";
-import { Command, COMMAND, KEEP_ALIVE } from "../common/command";
-import { ERROR, LogEntry } from "../common/log-entry";
+import { Message } from "../message/message";
+import { Command, COMMAND, KEEP_ALIVE } from "../message/command";
+import { ERROR, LogEntry } from "../message/log-entry";
 import browser from "webextension-polyfill";
 
 const NATIVE_NAME = "io.github.thomashuss.CPTerm";
