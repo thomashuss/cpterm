@@ -605,16 +605,19 @@ public class CPTermHost
             if (error == null) {
                 Map<String, TestResults.TestCase> cases = r.getCases();
                 for (Map.Entry<String, TestResults.TestCase> e : cases.entrySet()) {
-                    String name = '_' + sanitizeFileName(e.getKey());
+                    String name = sanitizeFileName(e.getKey());
                     TestResults.TestCase tc = e.getValue();
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")) + '\t');
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")) + '\t');
-                    out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")));
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")) + '\t');
+                    out.println(stringOrBlank(tc.getError()));
                 }
             } else {
                 out.println(error);
             }
-        } catch (InterruptedException | ExecutionException | TimeoutException e) {
+        } catch (TimeoutException e) {
+            out.println("timed out");
+        } catch (InterruptedException | ExecutionException e) {
             out.println(e);
             err("Test cases could not be retrieved", e);
         } catch (IOException e) {

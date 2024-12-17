@@ -37,10 +37,12 @@ export class TestCase {
     readonly input: string;
     readonly output: string | null;
     readonly expected: string | null;
+    readonly error: string | null;
 
-    constructor(input: string, output?: string, expected?: string) {
-        this.input = input;
-        this.output = output ?? null;
-        this.expected = expected ?? null;
+    constructor(input: string, output?: string, expected?: string, error?: string) {
+        this.input = input.trim();
+        this.output = output?.trim() ?? null;
+        this.expected = expected?.trim() ?? null;
+        this.error = error?.trim() ?? null;
     }
 }

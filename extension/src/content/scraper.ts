@@ -53,6 +53,51 @@ function firstAttrByClassName(className: string, attr: (e: Element) => string | 
 }
 
 /**
+ * Find the first visible sibling of an element.
+ * @param elem starting element
+ * @returns first visible sibling of elem, or null if one couldn't be found
+ */
+function firstVisibleSibling(elem: HTMLElement): OptionalHElement {
+    let ret = elem.nextElementSibling as OptionalHElement;
+    while (ret != null && ret.offsetParent == null) {
+        ret = ret.nextElementSibling as OptionalHElement;
+    }
+    return ret;
+}
+
+/**
+ * Watch the specified element for changes until a callback function returns non-null.  If the callback returns non-null
+ * before starting to watch the element, the promise resolves immediately.
+ * @param elem element to watch
+ * @param cb resolves promise with the non-null return value of this function
+ * @param options passed to MutationObserver
+ * @param initCb called immediately after listening starts
+ * @param timeout wait no longer than this time in milliseconds to resolve promise; rejects on timeout (default 60000)
+ * @returns promise
+ */
+async function waitForElement<T>(elem: Node, cb: () => T | null, options?: MutationObserverInit,
+    initCb?: (() => void) | null, timeout?: number): Promise<T> {
+    return new Promise<T>((resolve, reject) => {
+        const c = cb();
+        if (c == null) {
+            const t = setTimeout(() => { observer.disconnect(); reject("Timed out"); }, timeout ?? 60000);
+            const observer = new MutationObserver(() => {
+                const c = cb();
+                if (c != null) {
+                    clearTimeout(t);
+                    observer.disconnect();
+                    resolve(c);
+                }
+            });
+            observer.observe(elem, options);
+        } else {
+            resolve(c);
+        }
+        if (initCb != null) initCb();
+    });
+}
+
+/**
  * Watch the specified element for changes until a condition is met.  If the condition returns true
  * before starting to watch the element, the promise resolves immediately.
  * @param elem element to watch
@@ -64,22 +109,7 @@ function firstAttrByClassName(className: string, attr: (e: Element) => string | 
  */
 async function watchElement(elem: Node, condition: () => boolean, options?: MutationObserverInit,
     initCb?: (() => void) | null, timeout?: number): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-        if (condition()) {
-            resolve();
-        } else {
-            const t = setTimeout(() => { observer.disconnect(); reject("Timed out"); }, timeout ?? 60000);
-            const observer = new MutationObserver(() => {
-                if (condition()) {
-                    clearTimeout(t);
-                    observer.disconnect();
-                    resolve();
-                }
-            });
-            observer.observe(elem, options);
-        }
-        if (initCb != null) initCb();
-    });
+    await waitForElement(elem, () => condition() ? true : null, options, initCb, timeout);
 }
 
 /**
@@ -187,13 +217,28 @@ class HackerRank extends HasMonaco {
     private static async getTestCases(btnClass: string): Promise<Record<string, TestCase>> {
         await watchElement(document, () => document.getElementsByClassName("testcases-result-wrapper").length === 0,
             { childList: true, subtree: true }, () => (document.getElementsByClassName(btnClass)[0] as HTMLElement).click());
-        let wrappers: HTMLCollectionOf<Element>;
-        await watchElement(document, () => (wrappers = document.getElementsByClassName("testcases-result-wrapper")).length > 0,
-            { childList: true, subtree: true });
-        const ret: Record<string, TestCase> = {};
-        if (wrappers!.length > 0) {
-            const wrapper = wrappers![0];
-            const content = wrapper.getElementsByClassName("tab-content")[0];
+        let compileError = false;
+        const wrapper = await waitForElement(document,
+            () => {
+                const wrapper = document.querySelector(".testcases-result-wrapper");
+                if (wrapper == null) {
+                    const err = document.querySelector(".compile-error-wrapper") as OptionalHElement;
+                    if (err != null) {
+                        compileError = true;
+                        return firstVisibleSibling(err);
+                    }
+                }
+                return wrapper;
+            }, { childList: true, subtree: true });
+        if (compileError) {
+            return {
+                "0": new TestCase("", "", "",
+                    (wrapper.querySelector("pre.compile-message") as OptionalHElement)?.innerText ?? "")
+            };
+        } else {
+            const ret: Record<string, TestCase> = {};
+            const content = wrapper.querySelector(".tab-content");
+            assertDomStructure(content);
             const tabs = wrapper.getElementsByClassName("tab-item");
             for (const tab of tabs) {
                 await watchElement(content, () => content.getAttribute("aria-labelledby") === tab.id
@@ -201,14 +246,15 @@ class HackerRank extends HasMonaco {
                         || content.getElementsByClassName("lines-container").length > 0),
                     { childList: true, subtree: true, attributes: true, attributeFilter: ["aria-labelledby"] },
                     () => (tab as HTMLElement).click());
-                const stdin = (content.querySelector(".stdin .lines-container") as HTMLElement | undefined)?.innerText ?? "";
-                const expected = (content.querySelector(".expected-output .lines-container") as HTMLElement | undefined)?.innerText;
-                const stdout = (content.querySelector(".stdout .lines-container") as HTMLElement | undefined)?.innerText
+                const stdin = (content.querySelector(".stdin .lines-container") as OptionalHElement)?.innerText ?? "";
+                const expected = (content.querySelector(".expected-output .lines-container") as OptionalHElement)?.innerText;
+                const stdout = (content.querySelector(".stdout .lines-container") as OptionalHElement)?.innerText
                     ?? tab.querySelector("svg[aria-label='Failed']") != null ? "" : expected;
-                ret[(tab as HTMLElement).innerText] = new TestCase(stdin, stdout, expected);
+                const stderr = (content.querySelector(".stderr .lines-container") as OptionalHElement)?.innerText;
+                ret[(tab as HTMLElement).innerText] = new TestCase(stdin, stdout, expected, stderr);
             }
+            return ret;
         }
-        return ret;
     }
 
     async runTestCases(): Promise<Record<string, TestCase>> {
@@ -239,43 +285,55 @@ class LeetCode extends HasMonaco {
     }
 
     async runTestCases(): Promise<Record<string, TestCase>> {
-        const ret: Record<string, TestCase> = {};
+        const results = document.querySelector("div[data-layout-path='/c1/ts1/t1']") as OptionalHElement;  // "Test Result" tab content
+        assertDomStructure(results);
         const btn = document.querySelector("button[data-e2e-locator='console-run-button']");
         // wait for prior result to disappear if it's visible
-        await watchElement(document, () =>
+        await watchElement(results, () =>
             // not actually a double negative; will return true if the null check fails
             // (which is desired, since this means the old result was never visible)
-            !((document.querySelector("[data-e2e-locator='console-result']") as HTMLElement | null)?.offsetParent != null),
+            !((results.querySelector("[data-e2e-locator='console-result']") as OptionalHElement)?.offsetParent != null),
             { childList: true, subtree: true, attributes: true, attributeFilter: ["data-e2e-locator"] },
             () => (btn as OptionalHElement)?.click());
         // wait for new result to appear
-        await watchElement(document, () =>
-            (document.querySelector("[data-e2e-locator='console-result']") as HTMLElement | null)?.offsetParent != null,
+        const consoleResult = await waitForElement(results, () => {
+            const cr = results.querySelector("[data-e2e-locator='console-result']") as OptionalHElement;
+            if (cr?.offsetParent != null) {
+                return cr;
+            }
+            return null;
+        },
             { childList: true, subtree: true, attributes: true, attributeFilter: ["data-e2e-locator"] });
-
-        const results = document.querySelector("div[data-layout-path='/c1/ts1/t1']");  // "Test Result" tab content
-        assertDomStructure(results);
 
         let input: OptionalUndefHElement, output: OptionalUndefHElement, expected: OptionalUndefHElement;
         for (const label of <NodeListOf<HTMLDivElement>>results.querySelectorAll("div.text-label-3")) {
             // TODO: maybe make this less locale dependent
-            if (label.innerText === "Input") input = <OptionalHElement>label.nextElementSibling;
-            else if (label.innerText === "Output") output = <OptionalHElement>label.nextElementSibling;
-            else if (label.innerText === "Expected") expected = <OptionalHElement>label.nextElementSibling;
+            if (label.innerText === "Input") input = firstVisibleSibling(label);
+            else if (label.innerText.startsWith("Last Executed Input")) input = firstVisibleSibling(label);
+            else if (label.innerText === "Output") output = firstVisibleSibling(label);
+            else if (label.innerText === "Expected") expected = firstVisibleSibling(label);
         }
-        if (input != null && output != null && expected != null) {
-            for (const tab of <NodeListOf<HTMLDivElement>>results.querySelectorAll("div.cursor-pointer")) {
-                if (tab.innerText !== "") {  // button is a test case tab
-                    if (!tab.classList.contains("bg-fill-3")) {  // tab is not presently selected
-                        const oldInput = input.innerText;
-                        await watchElement(results, () => input.innerText !== oldInput,
-                            { childList: true, subtree: true }, () => tab.click());
+        if (consoleResult.classList.contains("text-red-s")) {  // compile/runtime error
+            return {
+                "0": new TestCase(input?.innerText ?? "", "", "",
+                    (results.querySelector(".whitespace-pre-wrap") as OptionalHElement)?.innerText ?? "")
+            };
+        } else {
+            const ret: Record<string, TestCase> = {};
+            if (input != null && output != null && expected != null) {
+                for (const tab of <NodeListOf<HTMLDivElement>>results.querySelectorAll("div.cursor-pointer")) {
+                    if (tab.innerText !== "") {  // button is a test case tab
+                        if (!tab.classList.contains("bg-fill-3")) {  // tab is not presently selected
+                            const oldInput = input.innerText;
+                            await watchElement(results, () => input.innerText !== oldInput,
+                                { childList: true, subtree: true }, () => tab.click());
+                        }
+                        ret[tab.innerText] = new TestCase(input.innerText, output.innerText, expected.innerText);
                     }
-                    ret[tab.innerText] = new TestCase(input.innerText, output.innerText, expected.innerText);
                 }
             }
-        }  // else compile error
-        return ret;
+            return ret;
+        }
     }
 
     private static findHasResultsPath(hasResultsPath: HTMLElement): HTMLElement {
@@ -313,29 +371,32 @@ class LeetCode extends HasMonaco {
         // don't reuse old value in case path changed
         const resultsPath = LeetCode.findResultsPath(subDetailBtn!);
 
-        // results pane
-        let results: OptionalUndefHElement;
         let input: OptionalUndefHElement, output: OptionalUndefHElement, expected: OptionalUndefHElement;
-
-        await watchElement(container, () =>
-            (results != null || (results = container.querySelector(`div[data-layout-path='${resultsPath}']`) as OptionalHElement) != null),
+        const results = await waitForElement(container, () =>
+            container.querySelector(`div[data-layout-path='${resultsPath}']`) as OptionalHElement,
             { childList: true, subtree: true });
+        let consoleResult: OptionalUndefHElement;
 
-        await watchElement(results!, () => {
-            for (const label of <NodeListOf<HTMLDivElement>>results!.querySelectorAll("div.text-label-3")) {
+        await watchElement(results, () => {
+            for (const label of <NodeListOf<HTMLDivElement>>results.querySelectorAll("div.text-label-3, div.text-text-tertiary")) {
                 // TODO: maybe make this less locale dependent
-                if (label.innerText === "Input") input = <OptionalHElement>label.nextElementSibling;
-                else if (label.innerText === "Output") output = <OptionalHElement>label.nextElementSibling;
-                else if (label.innerText === "Expected") expected = <OptionalHElement>label.nextElementSibling;
+                if (label.innerText === "Input") input = firstVisibleSibling(label);
+                else if (label.innerText.startsWith("Last Executed Input") && label.parentElement != null) input = firstVisibleSibling(label.parentElement);
+                else if (label.innerText === "Output") output = firstVisibleSibling(label);
+                else if (label.innerText === "Expected") expected = firstVisibleSibling(label);
             }
             return (input != null && output != null && expected != null)
-                || results!.querySelector("span[data-e2e-locator='submission-result']")?.parentElement?.classList.contains("text-green-s")
-                || results!.querySelector("span[data-e2e-locator='console-result']") != null;
+                || results.querySelector("span[data-e2e-locator='submission-result']")?.parentElement?.classList.contains("text-green-s")
+                || (consoleResult = (results.querySelector("span[data-e2e-locator='console-result']") as OptionalHElement)) != null;
         }, { childList: true, subtree: true });
         if (input != null && output != null && expected != null) {
             return { "0": new TestCase(input.innerText, output.innerText, expected.innerText) };
+        } else if (consoleResult?.classList.contains("text-red-s")) {
+            return {
+                "0": new TestCase(input?.innerText ?? "", "", "",
+                    (results.querySelector(".whitespace-pre-wrap") as OptionalHElement)?.innerText ?? "")
+            };
         } else {
-            // passed or compile error
             return {};
         }
     }
@@ -368,8 +429,8 @@ function sendMessage(m: Message) {
  * Add promise handlers for the test case submission.
  * @param p submission promise
  */
-function handleTestCase(p: Promise<Record<string, TestCase>>) {
-    p.then((c) => sendMessage(new TestResults(c, null)))
+function handleTestCase(p: Promise<Record<string, TestCase> | string>) {
+    p.then((c) => sendMessage(typeof c === "string" ? new TestResults(null, c) : new TestResults(c, null)))
         .catch((err) => sendMessage(new TestResults(null, JSON.stringify(err))));
 }
 

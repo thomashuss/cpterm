@@ -46,6 +46,8 @@ public class TestResults
         private String output;
         @JsonProperty()
         private String expected;
+        @JsonProperty()
+        private String error;
 
         public String getExpected()
         {
@@ -60,6 +62,11 @@ public class TestResults
         public String getInput()
         {
             return input;
+        }
+
+        public String getError()
+        {
+            return error;
         }
     }
 }
