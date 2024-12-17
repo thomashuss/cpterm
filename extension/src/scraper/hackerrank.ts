@@ -35,9 +35,9 @@ export class HackerRank extends HasMonaco {
         return firstAttrByClassName("select-language", e => (e as HTMLElement).innerText);
     }
 
-    private static async getTestCases(btnClass: string): Promise<Record<string, TestCase>> {
+    private static async getTestCases(btnQuery: string): Promise<Record<string, TestCase>> {
         await watchElement(document, () => document.getElementsByClassName("testcases-result-wrapper").length === 0,
-            { childList: true, subtree: true }, () => (document.getElementsByClassName(btnClass)[0] as HTMLElement).click());
+            { childList: true, subtree: true }, () => (document.querySelector(btnQuery) as OptionalHElement)?.click());
         let compileError = false;
         const wrapper = await waitForElement(document,
             () => {
@@ -79,10 +79,10 @@ export class HackerRank extends HasMonaco {
     }
 
     async runTestCases(): Promise<Record<string, TestCase>> {
-        return HackerRank.getTestCases("hr-monaco-compile");
+        return HackerRank.getTestCases(".hr-monaco-compile");
     }
 
     async runSubmitTestCases(): Promise<Record<string, TestCase>> {
-        return HackerRank.getTestCases("hr-monaco-submit");
+        return HackerRank.getTestCases(".hr-monaco-submit");
     }
 }
