@@ -22,7 +22,7 @@ import { OptionalHElement, assertDomStructure, watchElement, waitForElement, Opt
 export class LeetCode extends HasMonaco {
     isProblem(): boolean {
         return location.pathname.match(/\/problems\/.+\//) != null
-            && (document.querySelector("div[data-track-load='description_content']") as HTMLElement | undefined)?.offsetParent != null;
+            && (document.querySelector("div[data-track-load='description_content']") as OptionalHElement)?.offsetParent != null;
     }
 
     getName(): string {
@@ -34,7 +34,7 @@ export class LeetCode extends HasMonaco {
     }
 
     getLanguage(): string {
-        return (document.querySelector("#editor button:has(div svg[data-icon*='down'])") as HTMLElement | undefined)?.innerText ?? "";
+        return (document.querySelector("#editor button:has(div svg[data-icon*='down'])") as OptionalHElement)?.innerText ?? "";
     }
 
     async runTestCases(): Promise<Record<string, TestCase>> {
@@ -119,10 +119,10 @@ export class LeetCode extends HasMonaco {
         const submitBtn = <HTMLElement>document.querySelector("button[data-e2e-locator='console-submit-button']");
         assertDomStructure(submitBtn);
         // click submit button and wait for subDetailBtn to become visible
-        await watchElement(container, () => (subDetailBtn = document.getElementById("submission-detail_tab")) != null,
+        subDetailBtn = await waitForElement(container, () => document.getElementById("submission-detail_tab"),
             { childList: true, subtree: true }, () => submitBtn.click());
         // don't reuse old value in case path changed
-        const resultsPath = LeetCode.findResultsPath(subDetailBtn!);
+        const resultsPath = LeetCode.findResultsPath(subDetailBtn);
 
         let input: OptionalUndefHElement, output: OptionalUndefHElement, expected: OptionalUndefHElement;
         const results = await waitForElement(container, () => container.querySelector(`div[data-layout-path='${resultsPath}']`) as OptionalHElement,
