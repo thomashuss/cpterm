@@ -32,7 +32,7 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "scraper.js"
+        "scraper-inject.js"
       ],
       "matches": [
         "*://*.hackerrank.com/*",
