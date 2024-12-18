@@ -621,13 +621,13 @@ public class CPTermHost
                 for (Map.Entry<String, TestResults.TestCase> e : cases.entrySet()) {
                     String name = sanitizeFileName(e.getKey());
                     TestResults.TestCase tc = e.getValue();
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getError(), name, "error")) + '\t');
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")) + '\t');
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")) + '\t');
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")) + '\t');
-                    out.println(stringOrBlank(tc.getError()));
+                    out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")) + '\t');
                 }
             } else {
-                out.println(error);
+                out.println(stringOrBlank(saveTestCaseArtifact(error, "", "error")));
             }
         } catch (TimeoutException e) {
             out.println("timed out");
