@@ -170,7 +170,11 @@ public class CPTermHost
      */
     private static final String PROBLEM_VIEWER = "problem_viewer";
     /**
-     * File to run after creating problem files.
+     * File to run before creating and opening problem files.
+     */
+    private static final String PRE_PROBLEM_HOOK = "pre_problem_hook";
+    /**
+     * File to run after creating and opening problem files.
      */
     private static final String POST_PROBLEM_HOOK = "post_problem_hook";
     /**
@@ -214,13 +218,14 @@ public class CPTermHost
         DEFAULTS.setProperty(CODE_FILE_PATH, "");
         DEFAULTS.setProperty(CODE_USE_TEMP_FILE, DEFAULT_CODE_USE_TEMP_FILE);
         DEFAULTS.setProperty(COMMAND_SERVER_PORT, DEFAULT_COMMAND_SERVER_PORT);
-        DEFAULTS.setProperty(PROBLEM_CONVERTER, DEFAULT_PROBLEM_CONVERTER);
         DEFAULTS.setProperty(EDITOR, "");
         DEFAULTS.setProperty(LIBREOFFICE_ARGS, "");
         DEFAULTS.setProperty(LIBREOFFICE_PATH, "");
         DEFAULTS.setProperty(PANDOC_ARGS, "");
         DEFAULTS.setProperty(PANDOC_PATH, "");
         DEFAULTS.setProperty(POST_PROBLEM_HOOK, "");
+        DEFAULTS.setProperty(PRE_PROBLEM_HOOK, "");
+        DEFAULTS.setProperty(PROBLEM_CONVERTER, DEFAULT_PROBLEM_CONVERTER);
         DEFAULTS.setProperty(PROBLEM_FILE_PATH, "");
         DEFAULTS.setProperty(PROBLEM_FILE_SUFFIX, DEFAULT_PROBLEM_FILE_SUFFIX);
         DEFAULTS.setProperty(PROBLEM_USE_TEMP_FILE, DEFAULT_PROBLEM_USE_TEMP_FILE);
@@ -424,6 +429,15 @@ public class CPTermHost
             codeFileWatcher.stop();
         }
 
+        String preHook = prop.getProperty(PRE_PROBLEM_HOOK);
+        if (!preHook.isEmpty()) {
+            try {
+                new ProcessBuilder(preHook).start().waitFor();
+            } catch (IOException | InterruptedException e) {
+                err("Failed to run hook", e);
+            }
+        }
+
         String url = np.getUrl();
         lastName = np.getName();
         Path pp = null;
@@ -459,10 +473,10 @@ public class CPTermHost
             err("Failed to create and start watcher for code file", e);
         }
 
-        String hook = prop.getProperty(POST_PROBLEM_HOOK);
-        if (!hook.isEmpty()) {
+        String postHook = prop.getProperty(POST_PROBLEM_HOOK);
+        if (!postHook.isEmpty()) {
             try {
-                new ProcessBuilder(hook, cp == null ? "" : cp.toAbsolutePath().toString(),
+                new ProcessBuilder(postHook, cp == null ? "" : cp.toAbsolutePath().toString(),
                         pp == null ? "" : pp.toAbsolutePath().toString()).start();
             } catch (IOException e) {
                 err("Failed to run hook", e);
