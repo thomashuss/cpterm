@@ -66,10 +66,11 @@ export class LeetCode extends HasMonaco {
             else if (label.innerText === "Output") output = firstVisibleSibling(label);
             else if (label.innerText === "Expected") expected = firstVisibleSibling(label);
         }
-        if (consoleResult.classList.contains("text-red-s")) { // compile/runtime error
+        if (consoleResult.classList.contains("text-red-s") && consoleResult.innerText !== "Wrong Answer") { // compile/runtime error
+            const errorBox = results.querySelector(".whitespace-pre-wrap") as OptionalHElement;
             return {
                 "0": new TestCase(input?.innerText ?? "", "", "",
-                    (results.querySelector(".whitespace-pre-wrap") as OptionalHElement)?.innerText ?? "")
+                    input?.contains(errorBox) ? consoleResult.innerText : errorBox?.innerText ?? "")
             };
         } else {
             const ret: Record<string, TestCase> = {};
@@ -144,9 +145,10 @@ export class LeetCode extends HasMonaco {
         if (input != null && output != null && expected != null) {
             return { "0": new TestCase(input.innerText, output.innerText, expected.innerText) };
         } else if (consoleResult?.classList.contains("text-red-s")) {
+            const errorBox = results.querySelector(".whitespace-pre-wrap") as OptionalHElement;
             return {
                 "0": new TestCase(input?.innerText ?? "", "", "",
-                    (results.querySelector(".whitespace-pre-wrap") as OptionalHElement)?.innerText ?? "")
+                    input?.contains(errorBox) ? consoleResult.innerText : errorBox?.innerText ?? "")
             };
         } else {
             return {};
