@@ -23,6 +23,7 @@ import com.openhtmltopdf.util.XRLog;
 import org.jsoup.Jsoup;
 import org.jsoup.helper.W3CDom;
 import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -53,6 +54,7 @@ public class OpenHtmlToPdfConverter
     throws ConversionException
     {
         Document jdoc = ConversionUtils.clean(Jsoup.parse(outerHtml));
+        jdoc.head().appendChild(new Element("style").html("pre{white-space:pre-wrap;}"));
 
         org.w3c.dom.Document doc = W3CDom.convert(jdoc);
         try (FileOutputStream fos = new FileOutputStream(outputFile.toFile());
