@@ -87,11 +87,14 @@ public abstract class MessageServer
         try (ServerSocket serverSocket = new ServerSocket(port)) {
             this.serverSocket = serverSocket;
             while (true) {
-                try (Socket clientSocket = serverSocket.accept();
-                     BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-                     PrintWriter out = new PrintWriter(clientSocket.getOutputStream())) {
-                    synchronized (this) {
-                        received(in.readLine(), out);
+                try (Socket clientSocket = serverSocket.accept()) {
+                    if (clientSocket.getInetAddress().isLoopbackAddress()) {
+                        try (BufferedReader in = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+                             PrintWriter out = new PrintWriter(clientSocket.getOutputStream())) {
+                            synchronized (this) {
+                                received(in.readLine(), out);
+                            }
+                        }
                     }
                 } catch (SocketException ignored) {
                     break;
