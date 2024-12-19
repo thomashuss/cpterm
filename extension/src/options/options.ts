@@ -60,6 +60,12 @@ function validate() {
         || (document.getElementById("problem_file_path") as HTMLInputElement | null)?.value.trim() !== "",
         "Problem file path must be specified if not writing problems to a temporary file."
     );
+    validateCondition(
+        !((document.getElementById("create_dir_for_problem") as HTMLInputElement | null)?.checked)
+        || ((document.getElementById("code_file_path") as HTMLInputElement | null)?.value.trim() !== ""
+            && (document.getElementById("problem_file_path") as HTMLInputElement | null)?.value.trim() !== ""),
+        "Code and problem file paths must be specified if creating a directory for each problem."
+    );
 
     if (errors.length > 0) {
         alert("Correct the following errors:\n" + errors.join("\n"));

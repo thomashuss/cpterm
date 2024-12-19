@@ -206,6 +206,14 @@ public class CPTermHost
      */
     private static final String TEST_CASE_PATH = "test_case_file_path";
     /**
+     * Preferences key for the flag indicating whether to create a new directory for each problem if not using temp files.
+     */
+    private static final String CREATE_DIR_FOR_PROBLEM = "create_dir_for_problem";
+    /**
+     * Default value for the flag indicating whether to create a new directory for each problem if not using temp files.
+     */
+    private static final String DEFAULT_CREATE_DIR_FOR_PROBLEM = "true";
+    /**
      * Matches non-alphanumeric characters.
      */
     private static final Pattern NON_ALPHANUMERIC = Pattern.compile("[^0-9A-Za-z]");
@@ -218,6 +226,7 @@ public class CPTermHost
         DEFAULTS.setProperty(CODE_FILE_PATH, "");
         DEFAULTS.setProperty(CODE_USE_TEMP_FILE, DEFAULT_CODE_USE_TEMP_FILE);
         DEFAULTS.setProperty(COMMAND_SERVER_PORT, DEFAULT_COMMAND_SERVER_PORT);
+        DEFAULTS.setProperty(CREATE_DIR_FOR_PROBLEM, DEFAULT_CREATE_DIR_FOR_PROBLEM);
         DEFAULTS.setProperty(EDITOR, "");
         DEFAULTS.setProperty(LIBREOFFICE_ARGS, "");
         DEFAULTS.setProperty(LIBREOFFICE_PATH, "");
@@ -247,12 +256,12 @@ public class CPTermHost
      * Problem code file.
      */
     private final ScratchFile codeFile
-            = new ScratchFile(CODE_USE_TEMP_FILE, CODE_FILE_PATH, EDITOR);
+            = new ScratchFile(CODE_USE_TEMP_FILE, CREATE_DIR_FOR_PROBLEM, CODE_FILE_PATH, EDITOR);
     /**
      * Problem statement file.
      */
     private final ScratchFile problemFile
-            = new ScratchFile(PROBLEM_USE_TEMP_FILE, PROBLEM_FILE_PATH, PROBLEM_VIEWER);
+            = new ScratchFile(PROBLEM_USE_TEMP_FILE, CREATE_DIR_FOR_PROBLEM, PROBLEM_FILE_PATH, PROBLEM_VIEWER);
     /**
      * Files to clean.
      */
@@ -444,7 +453,7 @@ public class CPTermHost
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
                 (Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
             try {
-                pp = problemFile.create(lastName + prop.getProperty(PROBLEM_FILE_SUFFIX));
+                pp = problemFile.create(lastName, lastName + prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
                 err("Failed to create problem file", e);
                 return;
@@ -464,7 +473,7 @@ public class CPTermHost
 
         Path cp = null;
         try {
-            cp = codeFile.create(lastName + '.' + Languages.getExt(np.getLanguage()));
+            cp = codeFile.create(lastName, lastName + '.' + Languages.getExt(np.getLanguage()));
             codeFileWatcher = new CodeFileWatcher(cp);
             codeFileWatcher.write(np.getCode());
             codeFileWatcher.start();
@@ -583,7 +592,7 @@ public class CPTermHost
     }
 
     /**
-     * Write the test case artifact (input, output, expected) to a file.
+     * Write the test case artifact (input, output, expected, error) to a file.
      *
      * @param s    content of artifact
      * @param name name of test case
@@ -594,9 +603,10 @@ public class CPTermHost
     throws IOException
     {
         if (s != null && !s.isEmpty()) {
-            Path p = createScratchFile(Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
-                            ? "" : prop.getProperty(TEST_CASE_PATH),
-                    lastName + '_' + name + '_' + type + ".txt");
+            String fileName = lastName + '_' + name + '_' + type + ".txt";
+            Path p = Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
+                    ? createScratchFile(fileName)
+                    : createScratchFile(Paths.get(prop.getProperty(TEST_CASE_PATH)), fileName);
             try (PrintWriter pw = new PrintWriter(p.toFile())) {
                 pw.println(s);
             }
@@ -624,7 +634,7 @@ public class CPTermHost
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getError(), name, "error")) + '\t');
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")) + '\t');
                     out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")) + '\t');
-                    out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")) + '\t');
+                    out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")));
                 }
             } else {
                 out.println(stringOrBlank(saveTestCaseArtifact(error, "", "error")));
@@ -641,28 +651,38 @@ public class CPTermHost
     }
 
     /**
-     * Create a new scratch file.
+     * Create a permanent scratch file.
      *
-     * @param dir  absolute path to directory, or blank for temp file
-     * @param name file name including extension, or base name of temp file
+     * @param dir  path to directory
+     * @param name file name including extension
      * @return {@link Path} to new file
-     * @throws IOException if there was a problem creating a temp file
+     * @throws IOException if there was a problem creating the file
      */
-    private Path createScratchFile(String dir, String name)
+    private Path createScratchFile(Path dir, String name)
     throws IOException
     {
-        Path path;
-        if (dir.isEmpty()) {
-            path = Files.createTempFile("cpterm_", name.startsWith(".") ? name : '_' + name);
-            cleanable.add(path);
-        } else {
-            path = Files.createDirectories(Paths.get(dir)).resolve(name);
-            try {
-                Files.createFile(path);
-            } catch (FileAlreadyExistsException ignored) {
-            }
+        Path path = Files.createDirectories(dir).resolve(name);
+        try {
+            Files.createFile(path);
+        } catch (FileAlreadyExistsException ignored) {
         }
-        logger.info("Using scratch file {}", path);
+        logger.info("Using permanent scratch file {}", path);
+        return path;
+    }
+
+    /**
+     * Create a temporary scratch file.
+     *
+     * @param name file name including extension, or base name of temp file
+     * @return {@link Path} to new file
+     * @throws IOException if there was a problem creating the file
+     */
+    private Path createScratchFile(String name)
+    throws IOException
+    {
+        Path path = Files.createTempFile("cpterm_", name.startsWith(".") ? name : '_' + name);
+        cleanable.add(path);
+        logger.info("Using temporary scratch file {}", path);
         return path;
     }
 
@@ -741,6 +761,7 @@ public class CPTermHost
     private class ScratchFile
     {
         private final String tempKey;
+        private final String createDirKey;
         private final String pathKey;
         private final String handlerKey;
         private Path path;
@@ -748,44 +769,36 @@ public class CPTermHost
         /**
          * Create a new interface to a scratch file.
          *
-         * @param tempKey    prefs key for whether the file should be temporary
-         * @param pathKey    prefs key for the file prefix
-         * @param handlerKey prefs key for the file handler
+         * @param tempKey      prefs key for whether the file should be temporary
+         * @param createDirKey prefs key for whether a new directory should be created
+         * @param pathKey      prefs key for the file prefix
+         * @param handlerKey   prefs key for the file handler
          */
-        private ScratchFile(String tempKey, String pathKey, String handlerKey)
+        private ScratchFile(String tempKey, String createDirKey, String pathKey, String handlerKey)
         {
             this.tempKey = tempKey;
+            this.createDirKey = createDirKey;
             this.pathKey = pathKey;
             this.handlerKey = handlerKey;
-        }
-
-        /**
-         * Create a blank scratch file with the specified prefix.  An old file is added
-         * to the deletion list if needed.
-         *
-         * @param prefix entire path before {@code suffix}
-         * @param suffix should be appended to the file name
-         * @return path to newly created file
-         * @throws IOException if there was a problem creating a temp file
-         */
-        private Path create(String prefix, String suffix)
-        throws IOException
-        {
-            return path = createScratchFile(prefix, suffix);
         }
 
         /**
          * Create a blank scratch file according to preferences set by the user.  An old file
          * is added to the deletion list if needed.
          *
+         * @param name   name of directory to create, if enabled
          * @param suffix should be appended to the file name
          * @return path to newly created file
          * @throws IOException if there was a problem creating a temp file
          */
-        private Path create(String suffix)
+        private Path create(String name, String suffix)
         throws IOException
         {
-            return create(Boolean.parseBoolean(prop.getProperty(tempKey)) ? "" : prop.getProperty(pathKey), suffix);
+            return path = Boolean.parseBoolean(prop.getProperty(tempKey))
+                    ? createScratchFile(suffix)
+                    : createScratchFile(Boolean.parseBoolean(prop.getProperty(createDirKey))
+                    ? Paths.get(prop.getProperty(pathKey), name)
+                    : Paths.get(prop.getProperty(pathKey)), suffix);
         }
 
         /**
