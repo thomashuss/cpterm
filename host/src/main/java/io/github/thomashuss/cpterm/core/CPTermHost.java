@@ -283,11 +283,11 @@ public class CPTermHost
     /**
      * Origin URL of last generated problem file.
      */
-    private String lastUrl;
+    private String problemUrl;
     /**
      * Name of last problem.
      */
-    private String lastName;
+    private String problemName;
     /**
      * Running command server.
      */
@@ -442,12 +442,12 @@ public class CPTermHost
     {
         boolean reload = Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM));
         String url = np.getUrl();
-        lastName = np.getName();
+        String name = np.getName();
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
-                (reload || !url.equals(lastUrl))) {
+                (reload || !url.equals(problemUrl))) {
             Path pp;
             try {
-                pp = problemFile.create(lastName, lastName + prop.getProperty(PROBLEM_FILE_SUFFIX));
+                pp = problemFile.create(name, name + prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
                 err("Failed to create problem file", e);
                 return null;
@@ -466,7 +466,6 @@ public class CPTermHost
             problemFile.open();
             return pp;
         }
-        lastUrl = url;
         return null;
     }
 
@@ -479,8 +478,9 @@ public class CPTermHost
     private Path saveCode(NewProblem np)
     {
         String code = np.getCode();
+        String name = np.getName();
         try {
-            Path cp = codeFile.create(lastName, lastName + '.' + Languages.getExt(np.getLanguage()));
+            Path cp = codeFile.create(name, name + '.' + Languages.getExt(np.getLanguage()));
             if (!codeFile.isTemp() && codeFile.exists()) {
                 String existing = codeFile.read();
                 if (!existing.equals(code)) {
@@ -529,9 +529,9 @@ public class CPTermHost
         }
         codeFile.stopWatching();
         preProblemHook();
-        Path pp = renderProblem(np);
-        Path cp = saveCode(np);
-        postProblemHook(pp, cp);
+        postProblemHook(renderProblem(np), saveCode(np));
+        problemName = np.getName();
+        problemUrl = np.getUrl();
     }
 
     /**
@@ -642,7 +642,7 @@ public class CPTermHost
     throws IOException
     {
         if (s != null && !s.isEmpty()) {
-            String fileName = lastName + '_' + name + '_' + type + ".txt";
+            String fileName = problemName + '_' + name + '_' + type + ".txt";
             Path p = Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
                     ? createScratchFile(fileName)
                     : getScratchFile(Paths.get(prop.getProperty(TEST_CASE_PATH)), fileName);
