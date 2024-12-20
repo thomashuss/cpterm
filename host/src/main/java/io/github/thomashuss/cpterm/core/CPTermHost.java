@@ -42,7 +42,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintWriter;
-import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -255,8 +254,7 @@ public class CPTermHost
     /**
      * Problem code file.
      */
-    private final ScratchFile codeFile
-            = new ScratchFile(CODE_USE_TEMP_FILE, CREATE_DIR_FOR_PROBLEM, CODE_FILE_PATH, EDITOR);
+    private final CodeFile codeFile = new CodeFile();
     /**
      * Problem statement file.
      */
@@ -282,10 +280,6 @@ public class CPTermHost
      * Whether an attempt was made at setting {@code desktop}.
      */
     private boolean desktopTried;
-    /**
-     * Currently used file watcher.
-     */
-    private CodeFileWatcher codeFileWatcher;
     /**
      * Origin URL of last generated problem file.
      */
@@ -424,20 +418,10 @@ public class CPTermHost
     }
 
     /**
-     * A new problem was received, so create the files, open them, and listen for changes.
+     * Run the pre-problem hook, blocking until it exits.
      */
-    public void startProblem(NewProblem np)
+    private void preProblemHook()
     {
-        if (converter == null) {
-            err("Problem converter is improperly configured", null);
-            logger.info("Problem converter is set to {}", prop.getProperty(PROBLEM_CONVERTER));
-            return;
-        }
-
-        if (codeFileWatcher != null) {
-            codeFileWatcher.stop();
-        }
-
         String preHook = prop.getProperty(PRE_PROBLEM_HOOK);
         if (!preHook.isEmpty()) {
             try {
@@ -446,42 +430,82 @@ public class CPTermHost
                 err("Failed to run hook", e);
             }
         }
+    }
 
+    /**
+     * Render the problem statement to a file, if it hasn't already been rendered.
+     *
+     * @param np problem
+     * @return path to problem statement file
+     */
+    private Path renderProblem(NewProblem np)
+    {
+        boolean reload = Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM));
         String url = np.getUrl();
         lastName = np.getName();
-        Path pp = null;
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
-                (Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM)) || !url.equals(lastUrl))) {
+                (reload || !url.equals(lastUrl))) {
+            Path pp;
             try {
                 pp = problemFile.create(lastName, lastName + prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
                 err("Failed to create problem file", e);
-                return;
+                return null;
             }
-            try {
-                converter.convert(np.getProblem(), url, pp.toAbsolutePath());
-                problemFile.open();
-            } catch (ConversionException e) {
+            if (problemFile.isTemp() || reload || !problemFile.exists()) {
                 try {
-                    send(new LogEntry("error", "Conversion error\n" + e.getMessage()));
-                } catch (IOException ignored) {
+                    converter.convert(np.getProblem(), url, pp.toAbsolutePath());
+                } catch (ConversionException e) {
+                    try {
+                        send(new LogEntry("error", "Conversion error\n" + e.getMessage()));
+                    } catch (IOException ignored) {
+                    }
+                    return null;
                 }
-                pp = null;
             }
+            problemFile.open();
+            return pp;
         }
         lastUrl = url;
+        return null;
+    }
 
-        Path cp = null;
+    /**
+     * Save the code for this problem to a file, or retrieve old code.
+     *
+     * @param np problem
+     * @return path to code file
+     */
+    private Path saveCode(NewProblem np)
+    {
+        String code = np.getCode();
         try {
-            cp = codeFile.create(lastName, lastName + '.' + Languages.getExt(np.getLanguage()));
-            codeFileWatcher = new CodeFileWatcher(cp);
-            codeFileWatcher.write(np.getCode());
-            codeFileWatcher.start();
+            Path cp = codeFile.create(lastName, lastName + '.' + Languages.getExt(np.getLanguage()));
+            if (!codeFile.isTemp() && codeFile.exists()) {
+                String existing = codeFile.read();
+                if (!existing.equals(code)) {
+                    send(new SetCode(existing));
+                }
+            } else {
+                codeFile.write(code);
+            }
+            codeFile.startWatching();
             codeFile.open();
+            return cp;
         } catch (IOException e) {
             err("Failed to create and start watcher for code file", e);
         }
+        return null;
+    }
 
+    /**
+     * Run the post-problem hook.  Do not block.
+     *
+     * @param cp path to code file
+     * @param pp path to problem file
+     */
+    private void postProblemHook(Path cp, Path pp)
+    {
         String postHook = prop.getProperty(POST_PROBLEM_HOOK);
         if (!postHook.isEmpty()) {
             try {
@@ -494,14 +518,29 @@ public class CPTermHost
     }
 
     /**
+     * A new problem was received, so create the files, open them, and listen for changes.
+     */
+    public void startProblem(NewProblem np)
+    {
+        if (converter == null) {
+            err("Problem converter is improperly configured", null);
+            logger.info("Problem converter is set to {}", prop.getProperty(PROBLEM_CONVERTER));
+            return;
+        }
+        codeFile.stopWatching();
+        preProblemHook();
+        Path pp = renderProblem(np);
+        Path cp = saveCode(np);
+        postProblemHook(pp, cp);
+    }
+
+    /**
      * Gracefully clean up.
      */
     public void quit()
     {
         logger.info("Quitting gracefully");
-        if (codeFileWatcher != null) {
-            codeFileWatcher.stop();
-        }
+        codeFile.stopWatching();
 
         if (messageServer != null) {
             messageServer.stop();
@@ -606,7 +645,7 @@ public class CPTermHost
             String fileName = lastName + '_' + name + '_' + type + ".txt";
             Path p = Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
                     ? createScratchFile(fileName)
-                    : createScratchFile(Paths.get(prop.getProperty(TEST_CASE_PATH)), fileName);
+                    : getScratchFile(Paths.get(prop.getProperty(TEST_CASE_PATH)), fileName);
             try (PrintWriter pw = new PrintWriter(p.toFile())) {
                 pw.println(s);
             }
@@ -651,21 +690,17 @@ public class CPTermHost
     }
 
     /**
-     * Create a permanent scratch file.
+     * Get a path to a permanent scratch file.  The file is not created.
      *
      * @param dir  path to directory
      * @param name file name including extension
      * @return {@link Path} to new file
      * @throws IOException if there was a problem creating the file
      */
-    private Path createScratchFile(Path dir, String name)
+    private Path getScratchFile(Path dir, String name)
     throws IOException
     {
         Path path = Files.createDirectories(dir).resolve(name);
-        try {
-            Files.createFile(path);
-        } catch (FileAlreadyExistsException ignored) {
-        }
         logger.info("Using permanent scratch file {}", path);
         return path;
     }
@@ -684,51 +719,6 @@ public class CPTermHost
         cleanable.add(path);
         logger.info("Using temporary scratch file {}", path);
         return path;
-    }
-
-    private class CodeFileWatcher
-            extends Watcher
-    {
-        private final File file;
-
-        private CodeFileWatcher(Path path)
-        {
-            super(path);
-            file = path.toFile();
-        }
-
-        /**
-         * Write the code to the file.
-         *
-         * @throws IOException if there was a problem writing to the file or obtaining the code
-         */
-        private void write(String code)
-        throws IOException
-        {
-            try (PrintWriter pw = new PrintWriter(file)) {
-                pw.write(code);
-            }
-        }
-
-        /**
-         * Send the contents of the file to the browser.
-         */
-        @Override
-        protected void modified()
-        {
-            String lines;
-            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                lines = br.lines().collect(Collectors.joining("\n"));
-            } catch (IOException e) {
-                err("Could not read file", e);
-                return;
-            }
-            try {
-                send(new SetCode(lines));
-            } catch (IOException e) {
-                logger.error("Could not send code file", e);
-            }
-        }
     }
 
     private class CommandServer
@@ -764,7 +754,8 @@ public class CPTermHost
         private final String createDirKey;
         private final String pathKey;
         private final String handlerKey;
-        private Path path;
+        protected Path path;
+        private boolean temp;
 
         /**
          * Create a new interface to a scratch file.
@@ -774,7 +765,7 @@ public class CPTermHost
          * @param pathKey      prefs key for the file prefix
          * @param handlerKey   prefs key for the file handler
          */
-        private ScratchFile(String tempKey, String createDirKey, String pathKey, String handlerKey)
+        protected ScratchFile(String tempKey, String createDirKey, String pathKey, String handlerKey)
         {
             this.tempKey = tempKey;
             this.createDirKey = createDirKey;
@@ -783,28 +774,50 @@ public class CPTermHost
         }
 
         /**
-         * Create a blank scratch file according to preferences set by the user.  An old file
-         * is added to the deletion list if needed.
+         * Whether the file exists.
+         *
+         * @return true if it exists
+         */
+        protected boolean exists()
+        {
+            return Files.exists(path);
+        }
+
+        /**
+         * Whether the current file is a temp file.
+         *
+         * @return true if temp
+         */
+        protected boolean isTemp()
+        {
+            return temp;
+        }
+
+        /**
+         * Create a blank scratch file according to preferences set by the user.
          *
          * @param name   name of directory to create, if enabled
          * @param suffix should be appended to the file name
-         * @return path to newly created file
+         * @return path to file
          * @throws IOException if there was a problem creating a temp file
          */
-        private Path create(String name, String suffix)
+        protected Path create(String name, String suffix)
         throws IOException
         {
-            return path = Boolean.parseBoolean(prop.getProperty(tempKey))
-                    ? createScratchFile(suffix)
-                    : createScratchFile(Boolean.parseBoolean(prop.getProperty(createDirKey))
-                    ? Paths.get(prop.getProperty(pathKey), name)
-                    : Paths.get(prop.getProperty(pathKey)), suffix);
+            temp = Boolean.parseBoolean(prop.getProperty(tempKey));
+            if (temp) {
+                return path = createScratchFile(suffix);
+            } else {
+                return path = getScratchFile(Boolean.parseBoolean(prop.getProperty(createDirKey))
+                        ? Paths.get(prop.getProperty(pathKey), name)
+                        : Paths.get(prop.getProperty(pathKey)), suffix);
+            }
         }
 
         /**
          * Open the file with its handler as defined in {@link #prop}.  Use {@link Desktop} if no handler is set.
          */
-        private void open()
+        protected void open()
         {
             String handler = handlerKey != null ? prop.getProperty(handlerKey) : "";
             if (handler.isEmpty()) {
@@ -821,6 +834,89 @@ public class CPTermHost
                 } catch (IOException e) {
                     err("Unable to open file with handler", e);
                 }
+            }
+        }
+    }
+
+    private class CodeFile
+            extends ScratchFile
+    {
+        private File file;
+        private Watcher watcher;
+
+        protected CodeFile()
+        {
+            super(CODE_USE_TEMP_FILE, CREATE_DIR_FOR_PROBLEM, CODE_FILE_PATH, EDITOR);
+        }
+
+        @Override
+        protected Path create(String name, String suffix)
+        throws IOException
+        {
+            Path p = super.create(name, suffix);
+            file = p.toFile();
+            watcher = new Watcher(p)
+            {
+                @Override
+                protected void modified()
+                {
+                    String lines;
+                    try {
+                        lines = read();
+                    } catch (IOException e) {
+                        err("Could not read file", e);
+                        return;
+                    }
+                    try {
+                        send(new SetCode(lines));
+                    } catch (IOException e) {
+                        logger.error("Could not send code file", e);
+                    }
+                }
+            };
+            return p;
+        }
+
+        /**
+         * Write the code to the file.
+         *
+         * @throws IOException if there was a problem writing to the file
+         */
+        protected void write(String code)
+        throws IOException
+        {
+            try (PrintWriter pw = new PrintWriter(file)) {
+                pw.write(code);
+            }
+        }
+
+        /**
+         * Read the file.
+         *
+         * @throws IOException if there was a problem reading from the file
+         */
+        protected String read()
+        throws IOException
+        {
+            String lines;
+            try (BufferedReader br = new BufferedReader(new FileReader(file))) {
+                lines = br.lines().collect(Collectors.joining("\n"));
+            }
+            return lines;
+        }
+
+        protected void startWatching()
+        throws IOException
+        {
+            if (watcher != null) {
+                watcher.start();
+            }
+        }
+
+        protected void stopWatching()
+        {
+            if (watcher != null) {
+                watcher.stop();
             }
         }
     }
