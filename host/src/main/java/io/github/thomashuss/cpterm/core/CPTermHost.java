@@ -45,6 +45,7 @@ import java.io.PrintWriter;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Properties;
@@ -251,6 +252,7 @@ public class CPTermHost
         }
     }
 
+    private final Object asyncCommandLock = new Object();
     /**
      * Problem code file.
      */
@@ -263,7 +265,7 @@ public class CPTermHost
     /**
      * Files to clean.
      */
-    private final Set<Path> cleanable = new HashSet<>();
+    private final Set<Path> cleanable = Collections.synchronizedSet(new HashSet<>());
     /**
      * Runtime properties of the program.
      */
@@ -595,12 +597,27 @@ public class CPTermHost
         }
     }
 
+    /**
+     * Attempt to offer a message to an active {@link WaitingFuture}.
+     *
+     * @param message message to offer
+     * @return {@code true} if the message was <b>not</b> accepted
+     */
+    private boolean offerAwaiting(Message message)
+    {
+        synchronized (asyncCommandLock) {
+            if (awaiting != null && awaiting.offer(message)) {
+                awaiting = null;
+                return false;
+            }
+            return true;
+        }
+    }
+
     @Override
     public boolean received(Message message)
     {
-        if (awaiting != null && awaiting.offer(message)) {
-            awaiting = null;
-        } else {
+        if (offerAwaiting(message)) {
             if (message instanceof NewProblem) {
                 startProblem((NewProblem) message);
             } else if (message instanceof SetPrefs) {
@@ -611,7 +628,8 @@ public class CPTermHost
     }
 
     /**
-     * Send a command to the extension for which a response is expected.
+     * Send a command to the extension for which a response is expected.  This should be run
+     * on the message server thread.
      *
      * @param cmd command
      * @param f   future waiting on response
@@ -619,15 +637,16 @@ public class CPTermHost
      */
     private boolean sendAsyncCommand(String cmd, WaitingFuture<? extends Message> f)
     {
-        awaiting = f;
-        try {
-            send(new Command(cmd));
-        } catch (IOException e) {
-            err("Could not send command", e);
-            awaiting = null;
-            return false;
+        synchronized (asyncCommandLock) {
+            try {
+                send(new Command(cmd));
+            } catch (IOException e) {
+                err("Could not send command", e);
+                return false;
+            }
+            awaiting = f;
+            return true;
         }
-        return true;
     }
 
     /**
