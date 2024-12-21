@@ -670,9 +670,12 @@ public class CPTermHost
                 for (Map.Entry<String, TestResults.TestCase> e : cases.entrySet()) {
                     String name = sanitizeFileName(e.getKey());
                     TestResults.TestCase tc = e.getValue();
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getError(), name, "error")) + '\t');
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")) + '\t');
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")) + '\t');
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getError(), name, "error")));
+                    out.print('\t');
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")));
+                    out.print('\t');
+                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")));
+                    out.print('\t');
                     out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")));
                 }
             } else {
@@ -855,25 +858,6 @@ public class CPTermHost
         {
             Path p = super.create(name, suffix);
             file = p.toFile();
-            watcher = new Watcher(p)
-            {
-                @Override
-                protected void modified()
-                {
-                    String lines;
-                    try {
-                        lines = read();
-                    } catch (IOException e) {
-                        err("Could not read file", e);
-                        return;
-                    }
-                    try {
-                        send(new SetCode(lines));
-                    } catch (IOException e) {
-                        logger.error("Could not send code file", e);
-                    }
-                }
-            };
             return p;
         }
 
@@ -898,19 +882,33 @@ public class CPTermHost
         protected String read()
         throws IOException
         {
-            String lines;
             try (BufferedReader br = new BufferedReader(new FileReader(file))) {
-                lines = br.lines().collect(Collectors.joining("\n"));
+                return br.lines().collect(Collectors.joining("\n"));
             }
-            return lines;
         }
 
         protected void startWatching()
         throws IOException
         {
-            if (watcher != null) {
-                watcher.start();
-            }
+            (watcher = new Watcher(path)
+            {
+                @Override
+                protected void modified()
+                {
+                    String lines;
+                    try {
+                        lines = read();
+                    } catch (IOException e) {
+                        err("Could not read file", e);
+                        return;
+                    }
+                    try {
+                        send(new SetCode(lines));
+                    } catch (IOException e) {
+                        logger.error("Could not send code file", e);
+                    }
+                }
+            }).start();
         }
 
         protected void stopWatching()
