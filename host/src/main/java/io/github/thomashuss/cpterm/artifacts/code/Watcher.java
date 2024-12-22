@@ -117,7 +117,7 @@ public abstract class Watcher
     {
         private final AtomicBoolean flag;
         private final WatchKey targetKey;
-        private final CountDownLatch latch;
+        private CountDownLatch latch;
 
         private WatcherListener(AtomicBoolean flag, WatchKey targetKey, CountDownLatch latch)
         {
@@ -131,6 +131,7 @@ public abstract class Watcher
         {
             logger.debug("Starting watcher for {}", path);
             latch.countDown();
+            latch = null;
             while (flag.get()) {
                 WatchKey key;
                 try {
