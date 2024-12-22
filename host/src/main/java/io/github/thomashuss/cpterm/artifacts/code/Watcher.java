@@ -26,6 +26,10 @@ import java.nio.file.StandardWatchEventKinds;
 import java.nio.file.WatchEvent;
 import java.nio.file.WatchKey;
 import java.nio.file.WatchService;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
@@ -36,6 +40,7 @@ public abstract class Watcher
 {
     private static final Logger logger = LoggerFactory.getLogger(Watcher.class);
     private static final WatchService watcher;
+    private static final ExecutorService exe = Executors.newSingleThreadExecutor();
 
     static {
         try {
@@ -47,7 +52,7 @@ public abstract class Watcher
 
     protected final Path path;
     private final Path parent;
-    private Thread thread;
+    private Future<?> thread;
     private AtomicBoolean flag;
 
     /**
@@ -69,20 +74,25 @@ public abstract class Watcher
     public static void close()
     throws IOException
     {
+        exe.shutdown();
         watcher.close();
     }
 
     /**
-     * Run the file watcher on a separate thread.
+     * Run the file watcher on a separate thread.  Since the watcher thread is reused across instances
+     * of @{code Watcher}, watching won't begin until the old watcher stops.  Blocks until the watcher
+     * starts.
      *
      * @throws IOException if there was a problem registering the file with the {@link WatchService}
      */
     public final void start()
-    throws IOException
+    throws IOException, InterruptedException
     {
         stop();
-        (thread = new Thread(new WatcherListener(flag = new AtomicBoolean(true),
-                parent.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY)))).start();
+        CountDownLatch latch = new CountDownLatch(1);
+        thread = exe.submit(new WatcherListener(flag = new AtomicBoolean(true),
+                parent.register(watcher, StandardWatchEventKinds.ENTRY_MODIFY), latch));
+        latch.await();
     }
 
     /**
@@ -92,7 +102,7 @@ public abstract class Watcher
     {
         if (thread != null && flag != null && flag.getAndSet(false)) {
             synchronized (this) {
-                thread.interrupt();
+                thread.cancel(true);
             }
         }
     }
@@ -107,17 +117,20 @@ public abstract class Watcher
     {
         private final AtomicBoolean flag;
         private final WatchKey targetKey;
+        private final CountDownLatch latch;
 
-        private WatcherListener(AtomicBoolean flag, WatchKey targetKey)
+        private WatcherListener(AtomicBoolean flag, WatchKey targetKey, CountDownLatch latch)
         {
             this.flag = flag;
             this.targetKey = targetKey;
+            this.latch = latch;
         }
 
         @Override
         public void run()
         {
             logger.debug("Starting watcher for {}", path);
+            latch.countDown();
             while (flag.get()) {
                 WatchKey key;
                 try {
@@ -139,7 +152,7 @@ public abstract class Watcher
                     }
                 }
             }
-            logger.debug("Ending watcher thread");
+            logger.debug("Ending watcher");
             flag.set(false);
             targetKey.cancel();
         }

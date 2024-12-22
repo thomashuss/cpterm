@@ -494,7 +494,7 @@ public class CPTermHost
             codeFile.startWatching();
             codeFile.open();
             return cp;
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             err("Failed to create and start watcher for code file", e);
         }
         return null;
@@ -907,7 +907,7 @@ public class CPTermHost
         }
 
         protected void startWatching()
-        throws IOException
+        throws IOException, InterruptedException
         {
             (watcher = new Watcher(path)
             {
