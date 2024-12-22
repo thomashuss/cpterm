@@ -754,7 +754,7 @@ public class CPTermHost
         @Override
         public void received(String in, PrintWriter out)
         {
-            if (Command.RUN.equals(in) || Command.SUBMIT.equals(in)) {
+            if (problemName != null && (Command.RUN.equals(in) || Command.SUBMIT.equals(in))) {
                 WaitingFuture<TestResults> f = new WaitingFuture<TestResults>()
                 {
                     @Override
