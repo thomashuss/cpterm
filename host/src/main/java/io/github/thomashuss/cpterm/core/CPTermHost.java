@@ -889,7 +889,7 @@ public class CPTermHost
         throws IOException
         {
             try (PrintWriter pw = new PrintWriter(file)) {
-                pw.write(code);
+                pw.println(code);
             }
         }
 
