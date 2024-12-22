@@ -703,10 +703,8 @@ public class CPTermHost
         } catch (TimeoutException e) {
             out.println("timed out");
         } catch (InterruptedException | ExecutionException e) {
-            out.println(e);
             err("Test cases could not be retrieved", e);
         } catch (IOException e) {
-            out.println(e);
             err("Test cases could not saved", e);
         }
     }
