@@ -83,7 +83,8 @@ public abstract class Watcher
      * of @{code Watcher}, watching won't begin until the old watcher stops.  Blocks until the watcher
      * starts.
      *
-     * @throws IOException if there was a problem registering the file with the {@link WatchService}
+     * @throws IOException          if there was a problem registering the file with the {@link WatchService}
+     * @throws InterruptedException if this thread was interrupted while waiting for the watcher thread
      */
     public final void start()
     throws IOException, InterruptedException
