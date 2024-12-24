@@ -26,11 +26,11 @@ export class NewProblem implements Message {
     readonly url: string;
     readonly name: string;
 
-    constructor(problem: string, code: string, language: string, url: string, name: string) {
+    constructor(problem: string, code: string, language: string, name: string) {
         this.problem = problem;
-        this.code = code;
-        this.language = language;
-        this.url = url;
-        this.name = name;
+        this.code = code.trim();
+        this.language = language.trimStart();
+        this.url = location.href;
+        this.name = name.trim();
     }
 }

@@ -91,7 +91,7 @@ function sendProblem(scraper: Scraper): boolean {
     const p = scraper.getProblem(), c = scraper.getCode(), l = scraper.getLanguage();
     // check if the page is ready
     if (p.length > 0 && c.length > 0) {
-        sendMessage(new NewProblem(p, c, l, location.href, scraper.getName()));
+        sendMessage(new NewProblem(p, c, l, scraper.getName()));
         return true;
     }
     return false;
