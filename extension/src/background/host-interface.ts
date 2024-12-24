@@ -117,7 +117,10 @@ export class HostInterface {
         if (this.nativePort != null) {
             const p: Record<string, string> = {};
             for (const change of Object.keys(changes)) {
-                p[change] = changes[change].newValue as string ?? "";
+                const newValue = changes[change].newValue;
+                if (newValue != null) {
+                    p[change] = <string>newValue;
+                }
             }
             this.nativePort.postMessage({ type: "setPrefs", prefs: p });
         }
