@@ -56,8 +56,8 @@ function sendMessage(m: Message) {
  * Add promise handlers for the test case submission.
  * @param p submission promise
  */
-function handleTestCase(p: Promise<Record<string, TestCase> | string>) {
-    p.then((c) => sendMessage(typeof c === "string" ? new TestResults(null, c) : new TestResults(c, null)))
+function handleTestCase(p: Promise<Record<string, TestCase>>) {
+    p.then((c) => sendMessage(new TestResults(c, null)))
         .catch((err) => sendMessage(new TestResults(null, JSON.stringify(err))));
 }
 
