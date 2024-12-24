@@ -532,7 +532,7 @@ public class CPTermHost
         codeFile.stopWatching();
         preProblemHook();
         postProblemHook(renderProblem(np), saveCode(np));
-        problemName = np.getName();
+        problemName = sanitizeFileName(np.getName());
         problemUrl = np.getUrl();
     }
 
