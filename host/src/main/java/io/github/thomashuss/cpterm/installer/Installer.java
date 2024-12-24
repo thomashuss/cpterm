@@ -45,7 +45,7 @@ public class Installer
     private static final String CHROME_EXT_ID = "chrome-extension://pfkaacnmmafpmdogookjkmdhepkabbkd/";
     private static final String FIREFOX_REG_KEY = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\" + MANIFEST_NAME;
     private static final String CHROME_REG_KEY = "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\" + MANIFEST_NAME;
-    private static final String JAVA_OPTS = "java -Xmx256m -jar";
+    private static final String JAVA_OPTS = "java -jar";
     private static final String HOME = System.getProperty("user.home");
     private static final ObjectMapper mapper = new ObjectMapper();
     private static final Path JAR;
