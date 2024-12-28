@@ -283,11 +283,11 @@ public class CPTermHost
      */
     private boolean desktopTried;
     /**
-     * Origin URL of last generated problem file.
+     * Origin URL of the last generated problem file.
      */
-    private String problemUrl;
+    private String lastProblemUrl;
     /**
-     * Name of last problem.
+     * Name of the current problem.
      */
     private String problemName;
     /**
@@ -444,12 +444,11 @@ public class CPTermHost
     {
         boolean reload = Boolean.parseBoolean(prop.getProperty(RELOAD_PROBLEM));
         String url = np.getUrl();
-        String name = np.getName();
         if (Boolean.parseBoolean(prop.getProperty(RENDER_PROBLEM)) &&
-                (reload || !url.equals(problemUrl))) {
+                (reload || !url.equals(lastProblemUrl))) {
             Path pp;
             try {
-                pp = problemFile.create(name, name + prop.getProperty(PROBLEM_FILE_SUFFIX));
+                pp = problemFile.create(problemName, problemName + prop.getProperty(PROBLEM_FILE_SUFFIX));
             } catch (IOException e) {
                 err("Failed to create problem file", e);
                 return null;
@@ -468,6 +467,7 @@ public class CPTermHost
             problemFile.open();
             return pp;
         }
+        lastProblemUrl = url;
         return null;
     }
 
@@ -480,9 +480,8 @@ public class CPTermHost
     private Path saveCode(NewProblem np)
     {
         String code = np.getCode();
-        String name = np.getName();
         try {
-            Path cp = codeFile.create(name, name + '.' + Languages.getExt(np.getLanguage()));
+            Path cp = codeFile.create(problemName, problemName + '.' + Languages.getExt(np.getLanguage()));
             if (!codeFile.isTemp() && codeFile.exists()) {
                 String existing = codeFile.read();
                 if (!existing.equals(code)) {
@@ -530,10 +529,9 @@ public class CPTermHost
             return;
         }
         codeFile.stopWatching();
+        problemName = sanitizeFileName(np.getName());
         preProblemHook();
         postProblemHook(renderProblem(np), saveCode(np));
-        problemName = sanitizeFileName(np.getName());
-        problemUrl = np.getUrl();
     }
 
     /**
