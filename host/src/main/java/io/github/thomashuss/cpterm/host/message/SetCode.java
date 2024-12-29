@@ -14,20 +14,18 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package io.github.thomashuss.cpterm.core.message;
+package io.github.thomashuss.cpterm.host.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-import java.util.Map;
-
-public final class SetPrefs
+public final class SetCode
         extends Message
 {
     @JsonProperty()
-    private Map<String, String> prefs;
+    private final String code;
 
-    public Map<String, String> getPrefs()
+    public SetCode(String code)
     {
-        return prefs;
+        this.code = code;
     }
 }

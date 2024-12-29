@@ -14,47 +14,20 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package io.github.thomashuss.cpterm.core.message;
+package io.github.thomashuss.cpterm.host.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 
-public final class NewProblem
+import java.util.Map;
+
+public final class SetPrefs
         extends Message
 {
     @JsonProperty()
-    private String problem;
-    @JsonProperty()
-    private String code;
-    @JsonProperty()
-    private String language;
-    @JsonProperty()
-    private String url;
-    @JsonProperty()
-    private String name;
+    private Map<String, String> prefs;
 
-    public String getProblem()
+    public Map<String, String> getPrefs()
     {
-        return problem;
+        return prefs;
     }
-
-    public String getCode()
-    {
-        return code;
-    }
-
-    public String getLanguage()
-    {
-        return language;
-    }
-
-    public String getUrl()
-    {
-        return url;
-    }
-
-    public String getName()
-    {
-        return name;
-    }
-
 }

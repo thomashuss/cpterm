@@ -14,21 +14,21 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package io.github.thomashuss.cpterm.core;
+package io.github.thomashuss.cpterm.host;
 
 import io.github.thomashuss.cpterm.artifacts.code.Languages;
 import io.github.thomashuss.cpterm.artifacts.code.Watcher;
 import io.github.thomashuss.cpterm.artifacts.html.ConversionException;
 import io.github.thomashuss.cpterm.artifacts.html.Converter;
 import io.github.thomashuss.cpterm.artifacts.html.ExternalConverter;
-import io.github.thomashuss.cpterm.core.message.Command;
-import io.github.thomashuss.cpterm.core.message.LogEntry;
-import io.github.thomashuss.cpterm.core.message.Message;
-import io.github.thomashuss.cpterm.core.message.NewProblem;
-import io.github.thomashuss.cpterm.core.message.SetCode;
-import io.github.thomashuss.cpterm.core.message.SetPrefs;
-import io.github.thomashuss.cpterm.core.message.TestResults;
-import io.github.thomashuss.cpterm.core.message.Version;
+import io.github.thomashuss.cpterm.host.message.Command;
+import io.github.thomashuss.cpterm.host.message.LogEntry;
+import io.github.thomashuss.cpterm.host.message.Message;
+import io.github.thomashuss.cpterm.host.message.NewProblem;
+import io.github.thomashuss.cpterm.host.message.SetCode;
+import io.github.thomashuss.cpterm.host.message.SetPrefs;
+import io.github.thomashuss.cpterm.host.message.TestResults;
+import io.github.thomashuss.cpterm.host.message.Version;
 import io.github.thomashuss.cpterm.ext.MessageServer;
 import io.github.thomashuss.cpterm.ext.NativeMessagingHost;
 import io.github.thomashuss.cpterm.ext.WaitingFuture;

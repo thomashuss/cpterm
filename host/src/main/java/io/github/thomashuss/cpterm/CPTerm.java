@@ -16,7 +16,7 @@
 
 package io.github.thomashuss.cpterm;
 
-import io.github.thomashuss.cpterm.core.CPTermHost;
+import io.github.thomashuss.cpterm.host.CPTermHost;
 import io.github.thomashuss.cpterm.installer.Installer;
 import io.github.thomashuss.cpterm.installer.InstallerGUI;
 

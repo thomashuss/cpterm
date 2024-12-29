@@ -1,4 +1,4 @@
-package io.github.thomashuss.cpterm.core.message;
+package io.github.thomashuss.cpterm.host.message;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 

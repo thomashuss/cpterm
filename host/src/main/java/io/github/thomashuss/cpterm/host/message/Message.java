@@ -14,7 +14,7 @@
  *  this program. If not, see https://www.gnu.org/licenses/.
  */
 
-package io.github.thomashuss.cpterm.core.message;
+package io.github.thomashuss.cpterm.host.message;
 
 import com.fasterxml.jackson.annotation.JsonSubTypes;
 import com.fasterxml.jackson.annotation.JsonTypeInfo;
