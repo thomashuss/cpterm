@@ -27,11 +27,11 @@
             font-family: sans-serif;
         }
 
-        .prefsList {
+        .optionList {
             list-style-type: none;
         }
 
-        .prefsList li {
+        .optionList li {
             padding: 5px;
         }
     </style>
@@ -39,25 +39,25 @@
 
 <body>
     <h2>Files</h2>
-    <ul class="prefsList">
+    <ul class="optionList">
         <li>
-            <input type="radio" name="fileBehavior" id="useTempFiles" checked="" />
+            <input type="radio" name="fileBehavior" id="useTempFiles" checked="">
             <label for="useTempFiles">Use temporary files</label>
         </li>
         <li>
-            <input type="radio" name="fileBehavior" id="useDir" />
+            <input type="radio" name="fileBehavior" id="useDir">
             <label for="useDir">Create a directory for each problem</label>
-            <ul class="prefsList">
+            <ul class="optionList">
                 <li>
-                    <label for="dirPath">Path:</label>
-                    <input type="text" id="dirPath" disabled="" />
+                    <label for="dirPath">Path to parent directory:</label>
+                    <input type="text" id="dirPath" disabled="">
                 </li>
             </ul>
         </li>
     </ul>
 
     <h2>Problem statements</h2>
-    <ul class="prefsList">
+    <ul class="optionList">
         <li>
             <input type="checkbox" id="render_problem" class="pref" checked="">
             <label for="render_problem">Render problem statements to a file</label>
@@ -74,7 +74,7 @@
                 <option value="libreoffice">LibreOffice</option>
                 <option value="raw_html">Export raw HTML</option>
             </select>
-            <ul class="prefsList">
+            <ul class="optionList">
                 <li>
                     <label for="pandoc_path">Path to Pandoc:</label>
                     <input type="text" id="pandoc_path" class="pref">
@@ -100,7 +100,7 @@
     </ul>
 
     <h2>External software</h2>
-    <ul class="prefsList">
+    <ul class="optionList">
         <li>
             <label for="editor">Path to code editor (leave blank for OS default):</label>
             <input type="text" id="editor" class="pref">
@@ -120,7 +120,7 @@
         <li>
             <input type="checkbox" id="use_command_server" class="pref">
             <label for="use_command_server">Run a TCP server for external control</label>
-            <ul class="prefsList">
+            <ul class="optionList">
                 <li>
                     <label for="command_server_port">TCP port:</label>
                     <input type="number" id="command_server_port" class="pref" min="0" max="65535" value="50000">

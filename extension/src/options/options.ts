@@ -45,6 +45,11 @@ function validate() {
         || (document.getElementById("libreoffice_path") as HTMLInputElement | null)?.value.trim() !== "",
         "LibreOffice path must be specified when using LibreOffice."
     );
+    validateCondition(
+        !((document.getElementById("useDir") as HTMLInputElement | null)?.checked)
+        || (document.getElementById("dirPath") as HTMLInputElement | null)?.value.length !== 0,
+        "Set the problem directory."
+    );
 
     if (errors.length > 0) {
         alert("Correct the following errors:\n" + errors.join("\n"));
@@ -54,50 +59,63 @@ function validate() {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    const prefElems = document.getElementsByClassName("pref");
+    /**
+     * Elements whose ID is the preference key, and whose value is not transformed.
+     */
+    const prefElems = <NodeListOf<HTMLInputElement | HTMLSelectElement>>document.querySelectorAll("input.pref, select.pref");
     const saveBtn = document.getElementById("save") as HTMLButtonElement | null;
+    /**
+     * Checkbox for whether to create a directory for each problem.
+     */
     const useDir = document.getElementById("useDir") as HTMLInputElement | null;
+    /**
+     * Checkbox for whether to use temporary files.
+     */
     const useTempFiles = document.getElementById("useTempFiles") as HTMLInputElement | null;
+    /**
+     * Field for path to parent directory for problem directories.
+     */
     const dirPath = document.getElementById("dirPath") as HTMLInputElement | null;
 
     if (prefElems.length > 0 && saveBtn != null && dirPath != null && useTempFiles != null && useDir != null) {
+        document.querySelectorAll("input, select").forEach((e) => e.addEventListener("change", () => saveBtn.disabled = false));
+
         useTempFiles.addEventListener("change", () => {
             if (useTempFiles.checked) {
-                saveBtn.disabled = false;
                 dirPath.disabled = true;
             }
         });
 
         useDir.addEventListener("change", () => {
             if (useDir.checked) {
-                saveBtn.disabled = false;
                 dirPath.disabled = false;
             }
         });
 
-        dirPath.addEventListener("change", () => saveBtn.disabled = false);
-
         browser.storage.local.get(null).then((prefs) => {
-            dirPath.value = prefs["code_file_path"] as string | undefined ?? "";
+            const codeFilePath = prefs["code_file_path"];
+            if (typeof codeFilePath === "string") {
+                dirPath.value = codeFilePath;
+            }
+
             if (prefs["write_code_to_temp_file"] === "true" && prefs["write_problem_to_temp_file"] === "true") {
                 useTempFiles.checked = true;
                 dirPath.disabled = true;
             } else if (prefs["write_code_to_temp_file"] === "false" && prefs["write_problem_to_temp_file"] === "false"
-                && prefs["create_dir_for_problem"] === "true" && prefs["problem_file_path"] === prefs["code_file_path"]
-                && typeof prefs["code_file_path"] === "string") {
+                && prefs["create_dir_for_problem"] === "true" && prefs["problem_file_path"] === codeFilePath) {
                 useDir.checked = true;
                 dirPath.disabled = false;
             }
+
             for (const e of prefElems) {
                 const p = prefs[e.id];
-                if (typeof p === "string" && (e instanceof HTMLInputElement || e instanceof HTMLSelectElement)) {
+                if (typeof p === "string") {
                     if (e.type === "checkbox") {
                         e.checked = p === "true";
                     } else {
                         e.value = p;
                     }
                 }
-                e.addEventListener("change", () => saveBtn.disabled = false);
             }
         });
 
@@ -108,28 +126,22 @@ document.addEventListener("DOMContentLoaded", () => {
                 if (useTempFiles.checked) {
                     p["write_code_to_temp_file"] = p["write_problem_to_temp_file"] = "true";
                 } else if (useDir.checked) {
-                    const dirPathValue = dirPath.value;
-                    if (dirPathValue == null || dirPathValue.length === 0) {
-                        alert("Set the problem directory.");
-                        return;
-                    } else {
-                        p["write_code_to_temp_file"] = p["write_problem_to_temp_file"] = "false";
-                        p["create_dir_for_problem"] = "true";
-                        p["problem_file_path"] = p["code_file_path"] = dirPathValue;
-                    }
+                    p["write_code_to_temp_file"] = p["write_problem_to_temp_file"] = "false";
+                    p["create_dir_for_problem"] = "true";
+                    p["problem_file_path"] = p["code_file_path"] = dirPath.value;
                 }
 
                 for (const e of prefElems) {
-                    if (e instanceof HTMLInputElement || e instanceof HTMLSelectElement) {
-                        if (e.type === "checkbox") {
-                            p[e.id] = e.checked ? "true" : "false";
-                        } else {
-                            p[e.id] = e.value;
-                        }
+                    if (e.type === "checkbox") {
+                        p[e.id] = e.checked ? "true" : "false";
+                    } else {
+                        p[e.id] = e.value;
                     }
                 }
-                browser.storage.local.set(p);
-                saveBtn.disabled = true;
+
+                browser.storage.local.set(p)
+                    .then(() => saveBtn.disabled = true)
+                    .catch((e) => alert("Error while saving:\n" + e));
             }
         });
     }
