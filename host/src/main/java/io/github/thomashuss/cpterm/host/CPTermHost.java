@@ -21,6 +21,9 @@ import io.github.thomashuss.cpterm.artifacts.code.Watcher;
 import io.github.thomashuss.cpterm.artifacts.html.ConversionException;
 import io.github.thomashuss.cpterm.artifacts.html.Converter;
 import io.github.thomashuss.cpterm.artifacts.html.ExternalConverter;
+import io.github.thomashuss.cpterm.ext.MessageServer;
+import io.github.thomashuss.cpterm.ext.NativeMessagingHost;
+import io.github.thomashuss.cpterm.ext.WaitingFuture;
 import io.github.thomashuss.cpterm.host.message.Command;
 import io.github.thomashuss.cpterm.host.message.LogEntry;
 import io.github.thomashuss.cpterm.host.message.Message;
@@ -29,9 +32,6 @@ import io.github.thomashuss.cpterm.host.message.SetCode;
 import io.github.thomashuss.cpterm.host.message.SetPrefs;
 import io.github.thomashuss.cpterm.host.message.TestResults;
 import io.github.thomashuss.cpterm.host.message.Version;
-import io.github.thomashuss.cpterm.ext.MessageServer;
-import io.github.thomashuss.cpterm.ext.NativeMessagingHost;
-import io.github.thomashuss.cpterm.ext.WaitingFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -648,7 +648,20 @@ public class CPTermHost
     }
 
     /**
-     * Write the test case artifact (input, output, expected, error) to a file.
+     * Write the test case error to a file if it's non-empty.
+     *
+     * @param s    content of artifact
+     * @param name name of test case
+     * @throws IOException if an I/O error occurs
+     */
+    private Path saveTestCaseError(String s, String name)
+    throws IOException
+    {
+        return s == null || s.isEmpty() ? null : saveTestCaseArtifact(s, name, "error");
+    }
+
+    /**
+     * Write the test case artifact (input, output, expected, error) to a file, even if it's blank.
      *
      * @param s    content of artifact
      * @param name name of test case
@@ -658,7 +671,7 @@ public class CPTermHost
     private Path saveTestCaseArtifact(String s, String name, String type)
     throws IOException
     {
-        if (s != null && !s.isEmpty()) {
+        if (s != null) {
             String fileName = problemName + '_' + name + '_' + type + ".txt";
             Path p = Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
                     ? createScratchFile(fileName)
@@ -687,16 +700,16 @@ public class CPTermHost
                 for (Map.Entry<String, TestResults.TestCase> e : cases.entrySet()) {
                     String name = sanitizeFileName(e.getKey());
                     TestResults.TestCase tc = e.getValue();
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getError(), name, "error")));
+                    out.print(stringOrBlank(saveTestCaseError(tc.getError(), name)));
                     out.print('\t');
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getInput(), name, "in")));
+                    out.print(saveTestCaseArtifact(stringOrBlank(tc.getInput()), name, "in"));
                     out.print('\t');
-                    out.print(stringOrBlank(saveTestCaseArtifact(tc.getOutput(), name, "out")));
+                    out.print(saveTestCaseArtifact(stringOrBlank(tc.getOutput()), name, "out"));
                     out.print('\t');
-                    out.println(stringOrBlank(saveTestCaseArtifact(tc.getExpected(), name, "expected")));
+                    out.println(saveTestCaseArtifact(stringOrBlank(tc.getExpected()), name, "expected"));
                 }
             } else {
-                out.println(stringOrBlank(saveTestCaseArtifact(error, "", "error")));
+                out.println(saveTestCaseArtifact(error, "", "error"));
             }
         } catch (TimeoutException e) {
             out.println("timed out");
