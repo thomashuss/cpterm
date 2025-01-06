@@ -162,13 +162,21 @@ public class CPTermHost
      */
     private static final String DEFAULT_RELOAD_PROBLEM = "false";
     /**
-     * Preferences key for the default text editor.
+     * Preferences key for whether to open the text editor.
      */
     private static final String EDITOR = "editor";
     /**
-     * Preferences key for the default problem statement viewer.
+     * Default value for whether to open the text editor.
+     */
+    private static final String DEFAULT_EDITOR = "true";
+    /**
+     * Preferences key for whether to open the problem statement viewer.
      */
     private static final String PROBLEM_VIEWER = "problem_viewer";
+    /**
+     * Default value for whether to open the problem statement viewer.
+     */
+    private static final String DEFAULT_PROBLEM_VIEWER = "true";
     /**
      * File to run before creating and opening problem files.
      */
@@ -227,7 +235,7 @@ public class CPTermHost
         DEFAULTS.setProperty(CODE_USE_TEMP_FILE, DEFAULT_CODE_USE_TEMP_FILE);
         DEFAULTS.setProperty(COMMAND_SERVER_PORT, DEFAULT_COMMAND_SERVER_PORT);
         DEFAULTS.setProperty(CREATE_DIR_FOR_PROBLEM, DEFAULT_CREATE_DIR_FOR_PROBLEM);
-        DEFAULTS.setProperty(EDITOR, "");
+        DEFAULTS.setProperty(EDITOR, DEFAULT_EDITOR);
         DEFAULTS.setProperty(LIBREOFFICE_ARGS, "");
         DEFAULTS.setProperty(LIBREOFFICE_PATH, "");
         DEFAULTS.setProperty(PANDOC_ARGS, "");
@@ -238,7 +246,7 @@ public class CPTermHost
         DEFAULTS.setProperty(PROBLEM_FILE_PATH, "");
         DEFAULTS.setProperty(PROBLEM_FILE_SUFFIX, DEFAULT_PROBLEM_FILE_SUFFIX);
         DEFAULTS.setProperty(PROBLEM_USE_TEMP_FILE, DEFAULT_PROBLEM_USE_TEMP_FILE);
-        DEFAULTS.setProperty(PROBLEM_VIEWER, "");
+        DEFAULTS.setProperty(PROBLEM_VIEWER, DEFAULT_PROBLEM_VIEWER);
         DEFAULTS.setProperty(RAW_HTML_SHOULD_RENDER_SVG, DEFAULT_RAW_HTML_SHOULD_RENDER_SVG);
         DEFAULTS.setProperty(RELOAD_PROBLEM, DEFAULT_RELOAD_PROBLEM);
         DEFAULTS.setProperty(RENDER_PROBLEM, DEFAULT_RENDER_PROBLEM);
@@ -777,7 +785,7 @@ public class CPTermHost
         private final String tempKey;
         private final String createDirKey;
         private final String pathKey;
-        private final String handlerKey;
+        private final String openFileKey;
         protected Path path;
         private boolean temp;
 
@@ -787,14 +795,14 @@ public class CPTermHost
          * @param tempKey      prefs key for whether the file should be temporary
          * @param createDirKey prefs key for whether a new directory should be created
          * @param pathKey      prefs key for the file prefix
-         * @param handlerKey   prefs key for the file handler
+         * @param openFileKey  prefs key for whether to open file
          */
-        protected ScratchFile(String tempKey, String createDirKey, String pathKey, String handlerKey)
+        protected ScratchFile(String tempKey, String createDirKey, String pathKey, String openFileKey)
         {
             this.tempKey = tempKey;
             this.createDirKey = createDirKey;
             this.pathKey = pathKey;
-            this.handlerKey = handlerKey;
+            this.openFileKey = openFileKey;
         }
 
         /**
@@ -843,20 +851,11 @@ public class CPTermHost
          */
         protected void open()
         {
-            String handler = prop.getProperty(handlerKey);
-            if (handler.isEmpty()) {
-                if (hasDesktop()) {
-                    try {
-                        desktop.open(path.toFile());
-                    } catch (IOException | IllegalArgumentException | UnsupportedOperationException e) {
-                        err("Unable to open file with desktop", e);
-                    }
-                }
-            } else {
+            if (Boolean.parseBoolean(prop.getProperty(openFileKey)) && hasDesktop()) {
                 try {
-                    new ProcessBuilder(handler, path.toString()).start();
-                } catch (IOException e) {
-                    err("Unable to open file with handler", e);
+                    desktop.open(path.toFile());
+                } catch (IOException | IllegalArgumentException | UnsupportedOperationException e) {
+                    err("Unable to open file with desktop", e);
                 }
             }
         }
