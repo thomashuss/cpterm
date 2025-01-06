@@ -34,6 +34,10 @@
         .optionList li {
             padding: 5px;
         }
+
+        .converterParam {
+            display: none;
+        }
     </style>
 </head>
 
@@ -75,23 +79,23 @@
                 <option value="raw_html">Export raw HTML</option>
             </select>
             <ul class="optionList">
-                <li>
+                <li class="converterParam pandoc">
                     <label for="pandoc_path">Path to Pandoc:</label>
                     <input type="text" id="pandoc_path" class="pref">
                 </li>
-                <li>
+                <li class="converterParam pandoc">
                     <label for="pandoc_args">Additional command line arguments to Pandoc:</label>
                     <input type="text" id="pandoc_args" class="pref">
                 </li>
-                <li>
+                <li class="converterParam libreoffice">
                     <label for="libreoffice_path">Path to LibreOffice:</label>
                     <input type="text" id="libreoffice_path" class="pref">
                 </li>
-                <li>
+                <li class="converterParam libreoffice">
                     <label for="libreoffce_args">Additional command line arguments to LibreOffice:</label>
                     <input type="text" id="libreoffce_args" class="pref">
                 </li>
-                <li>
+                <li class="converterParam raw_html">
                     <input type="checkbox" id="raw_html_should_render_svg" class="pref">
                     <label for="raw_html_should_render_svg">Render SVG in raw HTML output</label>
                 </li>

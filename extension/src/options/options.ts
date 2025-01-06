@@ -76,9 +76,13 @@ document.addEventListener("DOMContentLoaded", () => {
      * Field for path to parent directory for problem directories.
      */
     const dirPath = document.getElementById("dirPath") as HTMLInputElement | null;
+    /**
+     * Problem converter drop-down.
+     */
+    const converter = document.getElementById("problem_converter") as HTMLSelectElement | null;
 
-    if (prefElems.length > 0 && saveBtn != null && dirPath != null && useTempFiles != null && useDir != null) {
-        document.querySelectorAll("input, select").forEach((e) => e.addEventListener("change", () => saveBtn.disabled = false));
+    if (prefElems.length > 0 && saveBtn != null && dirPath != null && useTempFiles != null && useDir != null && converter != null) {
+        prefElems.forEach((e) => e.addEventListener("change", () => saveBtn.disabled = false));
 
         useTempFiles.addEventListener("change", () => {
             if (useTempFiles.checked) {
@@ -91,6 +95,12 @@ document.addEventListener("DOMContentLoaded", () => {
                 dirPath.disabled = false;
             }
         });
+
+        const converterParamsShow = () => {
+            (<NodeListOf<HTMLElement>>document.querySelectorAll(".converterParam")).forEach((e) => e.style.display = "none");
+            (<NodeListOf<HTMLElement>>document.querySelectorAll(`.converterParam.${converter.value}`)).forEach((e) => e.style.display = "list-item");
+        };
+        converter.addEventListener("change", converterParamsShow);
 
         browser.storage.local.get(null).then((prefs) => {
             const codeFilePath = prefs["code_file_path"];
@@ -117,6 +127,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     }
                 }
             }
+            converterParamsShow();
         });
 
         saveBtn.addEventListener("click", () => {
