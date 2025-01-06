@@ -843,7 +843,7 @@ public class CPTermHost
          */
         protected void open()
         {
-            String handler = handlerKey != null ? prop.getProperty(handlerKey) : "";
+            String handler = prop.getProperty(handlerKey);
             if (handler.isEmpty()) {
                 if (hasDesktop()) {
                     try {
