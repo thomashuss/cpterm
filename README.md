@@ -24,7 +24,9 @@ LibreOffice
 
 ### Install native messaging host
 
-The CPTerm host is a Java application distributed as a `jar` file.
+The CPTerm host is a Java program distributed as a `jar` file.  It's responsible
+for interacting with the filesystem, rendering problem statements, running hook
+scripts, and handling commands over [TCP](#controlling-cpterm).
 
 <details>
 <summary>Troubleshooting</summary>
@@ -90,7 +92,10 @@ button.  If the page is a problem page, clicking the button will, in this order:
 
 A problem being _open_ means the [file listener](#code-file) is running for, and
 [submissions](#controlling-cpterm) will be made to, that problem.  Only one
-problem can be opened at a time.
+problem can be opened at a time.  The typical flow is: navigate to a problem
+page, click `Open problem`, write your solution, test/submit using
+[`cpt`](#using-cpt), and finally close the browser tab to free
+resources (delete temporary files and end the host process).
 
 ### Configuration
 
@@ -135,11 +140,11 @@ CPTerm can produce a cleaned `HTML` file, optionally with `SVG` rendered to
 
 ### Test case files
 
-These are generated when running a test case from CPTerm (this process is
-described later).  Typically, three files are created: input, output, and
-expected output.  An error file may be created if there was a compile time or
-runtime error, and this may or may not be accompanied by an input file.  Files
-created by a test case are always temporary.
+These are generated when [running a test case](#controlling-cpterm) from CPTerm.
+Typically, three files are created: input, output, and expected output.  An
+error file may be created if there was a compile time or runtime error, and this
+may or may not be accompanied by an input file.  Files created by a test case
+are always temporary.
 
 ## Scripting
 
@@ -154,14 +159,14 @@ arguments: the absolute paths to the code file and the problem statement file
 ### Controlling CPTerm
 
 A TCP server can be run so that CPTerm can be controlled externally; the server
-only accepts loopback connections.  By default, it is disabled.  The TCP server
-can be used to _run_ and _submit_ your solution.  This verbiage aligns with that
-of at least LeetCode and HackerRank; each of these actions corresponds to some
-equivalent functionality on the challenge website.
+only accepts loopback connections.  The TCP server can be used to _run_ and
+_submit_ your solution.  This verbiage aligns with that of at least LeetCode and
+HackerRank; each of these actions corresponds to some equivalent functionality
+on the challenge website.
 
 #### Using `cpt`
 
-The included shell script [cpt](util/cpt) implements a simple client for CPTerm
+The included shell script [`cpt`](util/cpt) implements a simple client for CPTerm
 and should suffice for most users.  It requires any implementation of
 [`nc`](https://en.wikipedia.org/wiki/Netcat).  The script is invoked with `cpt
 run` or `cpt submit`, and it will format the test case output nicely, if there
@@ -179,14 +184,16 @@ echo submit | nc 127.0.0.1 50000
 
 The server's response will be one of the following:
 
-- **Tab-separated columns**
-  - Each column is a path to a text file.
-  - **3 columns**: input, output, expected
-  - **2 columns**: error, input
-  - **1 column**: error
+- **Lines of tab-separated values**
+  - Each value is a path to a text file.
+  - Each line may have a different number of values.
+  - **3 values**: input, output, expected
+  - **2 values**: error, input
+  - **1 value**: error
 - **`timed out`**
   - The action was attempted, but the scraper didn't send a meaningful response
   within 1 minute.
 - **Blank**
-  - Something went wrong, or no test cases were provided.  LeetCode doesn't show
-  any test cases when _submitting_ a problem which passed all hidden test cases.
+  - Something went wrong, or no test cases were provided.  For example, LeetCode
+  doesn't show any test cases when _submitting_ a problem which passed all
+  hidden test cases.
