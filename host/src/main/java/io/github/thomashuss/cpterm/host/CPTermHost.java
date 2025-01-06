@@ -648,19 +648,6 @@ public class CPTermHost
     }
 
     /**
-     * Write the test case error to a file if it's non-empty.
-     *
-     * @param s    content of artifact
-     * @param name name of test case
-     * @throws IOException if an I/O error occurs
-     */
-    private Path saveTestCaseError(String s, String name)
-    throws IOException
-    {
-        return s == null || s.isEmpty() ? null : saveTestCaseArtifact(s, name, "error");
-    }
-
-    /**
      * Write the test case artifact (input, output, expected, error) to a file, even if it's blank.
      *
      * @param s    content of artifact
@@ -671,17 +658,14 @@ public class CPTermHost
     private Path saveTestCaseArtifact(String s, String name, String type)
     throws IOException
     {
-        if (s != null) {
-            String fileName = problemName + '_' + name + '_' + type + ".txt";
-            Path p = Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
-                    ? createScratchFile(fileName)
-                    : getScratchFile(Paths.get(prop.getProperty(TEST_CASE_PATH)), fileName);
-            try (PrintWriter pw = new PrintWriter(p.toFile())) {
-                pw.println(s);
-            }
-            return p;
+        String fileName = problemName + '_' + name + '_' + type + ".txt";
+        Path p = Boolean.parseBoolean(prop.getProperty(TEST_CASE_TEMP))
+                ? createScratchFile(fileName)
+                : getScratchFile(Paths.get(prop.getProperty(TEST_CASE_PATH)), fileName);
+        try (PrintWriter pw = new PrintWriter(p.toFile())) {
+            pw.println(s);
         }
-        return null;
+        return p;
     }
 
     /**
@@ -696,19 +680,28 @@ public class CPTermHost
             TestResults r = f.get(1L, TimeUnit.MINUTES);
             String error = r.getError();
             if (error == null) {
-                Map<String, TestResults.TestCase> cases = r.getCases();
-                for (Map.Entry<String, TestResults.TestCase> e : cases.entrySet()) {
+                for (Map.Entry<String, TestResults.TestCase> e : r.getCases().entrySet()) {
                     String name = sanitizeFileName(e.getKey());
                     TestResults.TestCase tc = e.getValue();
-                    out.print(stringOrBlank(saveTestCaseError(tc.getError(), name)));
-                    out.print('\t');
-                    out.print(saveTestCaseArtifact(stringOrBlank(tc.getInput()), name, "in"));
-                    out.print('\t');
-                    out.print(saveTestCaseArtifact(stringOrBlank(tc.getOutput()), name, "out"));
-                    out.print('\t');
-                    out.println(saveTestCaseArtifact(stringOrBlank(tc.getExpected()), name, "expected"));
+                    String errMsg = tc.getError();
+                    String input = stringOrBlank(tc.getInput());
+                    if (errMsg != null && !errMsg.isEmpty()) {
+                        out.print(saveTestCaseArtifact(errMsg, name, "error"));
+                        if (input != null && !input.isEmpty()) {  // error TAB input
+                            out.print('\t');
+                            out.println(saveTestCaseArtifact(input, name, "in"));
+                        } else {  // error
+                            out.println();
+                        }
+                    } else {  // input TAB output TAB expected
+                        out.print(saveTestCaseArtifact(input, name, "in"));
+                        out.print('\t');
+                        out.print(saveTestCaseArtifact(stringOrBlank(tc.getOutput()), name, "out"));
+                        out.print('\t');
+                        out.println(saveTestCaseArtifact(stringOrBlank(tc.getExpected()), name, "expected"));
+                    }
                 }
-            } else {
+            } else {  // error
                 out.println(saveTestCaseArtifact(error, "", "error"));
             }
         } catch (TimeoutException e) {
