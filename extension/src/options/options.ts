@@ -82,7 +82,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const converter = document.getElementById("problem_converter") as HTMLSelectElement | null;
 
     if (prefElems.length > 0 && saveBtn != null && dirPath != null && useTempFiles != null && useDir != null && converter != null) {
-        prefElems.forEach((e) => e.addEventListener("change", () => saveBtn.disabled = false));
+        document.querySelectorAll("input, select").forEach((e) => e.addEventListener("change", () => saveBtn.disabled = false));
 
         useTempFiles.addEventListener("change", () => {
             if (useTempFiles.checked) {
