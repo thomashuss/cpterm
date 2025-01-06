@@ -192,7 +192,7 @@ public class CPTermHost
     /**
      * Default value for the flag indicating whether to run a command server.
      */
-    private static final String DEFAULT_USE_COMMAND_SERVER = "false";
+    private static final String DEFAULT_USE_COMMAND_SERVER = "true";
     /**
      * Preferences key for the command server port.
      */
