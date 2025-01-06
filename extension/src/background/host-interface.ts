@@ -19,7 +19,7 @@ import { Command, COMMAND, KEEP_ALIVE } from "../message/command";
 import { ERROR, LogEntry } from "../message/log-entry";
 import browser from "webextension-polyfill";
 
-const NATIVE_NAME = "io.github.thomashuss.CPTerm";
+const NATIVE_NAME = "io.github.thomashuss.cpterm";
 const VERSION = "version";
 const HOST_VERSION = "1.0-SNAPSHOT";
 

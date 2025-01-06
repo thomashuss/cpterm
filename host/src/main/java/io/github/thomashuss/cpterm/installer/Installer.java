@@ -38,7 +38,7 @@ public class Installer
     private static final boolean WINDOWS;
     private static final String JAR_NAME = "cpterm-host.jar";
     private static final String INSTALLATION_FILE_NAME = ".cpterm_install.json";
-    private static final String MANIFEST_NAME = "io.github.thomashuss.CPTerm";
+    private static final String MANIFEST_NAME = "io.github.thomashuss.cpterm";
     private static final String MANIFEST_FNAME = MANIFEST_NAME + ".json";
     private static final String DESCRIPTION = "Allows the CPTerm extension to read and write scratch files";
     private static final String FIREFOX_EXT_ID = "cpterm@thomashuss.github.io";
@@ -223,7 +223,7 @@ public class Installer
         }
     }
 
-    private void writeManifest(Path bin, String extId, Path manifest)
+    private void writeManifest(Path bin, String extId, Path manifest, boolean firefox)
     throws IOException
     {
         ObjectNode root = mapper.createObjectNode();
@@ -232,7 +232,7 @@ public class Installer
         root.put("description", DESCRIPTION);
         root.put("path", bin.toAbsolutePath().toString());
         root.put("type", "stdio");
-        root.set("allowed_extensions", mapper.createArrayNode().add(extId));
+        root.set(firefox ? "allowed_extensions" : "allowed_origins", mapper.createArrayNode().add(extId));
         mapper.writeValue(manifestFile, root);
         installation.addFile(manifestFile);
     }
@@ -242,14 +242,14 @@ public class Installer
     {
         if (WINDOWS) {
             Path manifest = dir.resolve("manifest-firefox.json").toAbsolutePath();
-            writeManifest(bin, FIREFOX_EXT_ID, manifest);
+            writeManifest(bin, FIREFOX_EXT_ID, manifest, true);
             putWinReg(FIREFOX_REG_KEY, manifest.toString());
         } else if (MAC) {
             writeManifest(bin, FIREFOX_EXT_ID, Paths.get(HOME, "Library",
-                    "Application Support", "Mozilla", "NativeMessagingHosts", MANIFEST_FNAME));
+                    "Application Support", "Mozilla", "NativeMessagingHosts", MANIFEST_FNAME), true);
         } else {
             writeManifest(bin, FIREFOX_EXT_ID, Paths.get(HOME, ".mozilla",
-                    "native-messaging-hosts", MANIFEST_FNAME));
+                    "native-messaging-hosts", MANIFEST_FNAME), true);
         }
     }
 
@@ -258,14 +258,14 @@ public class Installer
     {
         if (WINDOWS) {
             Path manifest = dir.resolve("manifest-chrome.json").toAbsolutePath();
-            writeManifest(bin, CHROME_EXT_ID, manifest);
+            writeManifest(bin, CHROME_EXT_ID, manifest, false);
             putWinReg(CHROME_REG_KEY, manifest.toString());
         } else if (MAC) {
             writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, "Library",
-                    "Application Support", "Google", "Chrome", "NativeMessagingHosts", MANIFEST_FNAME));
+                    "Application Support", "Google", "Chrome", "NativeMessagingHosts", MANIFEST_FNAME), false);
         } else {
             writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, ".config",
-                    "google-chrome", "NativeMessagingHosts", MANIFEST_FNAME));
+                    "google-chrome", "NativeMessagingHosts", MANIFEST_FNAME), false);
         }
     }
 
@@ -274,14 +274,14 @@ public class Installer
     {
         if (WINDOWS) {
             Path manifest = dir.resolve("manifest-chromium.json").toAbsolutePath();
-            writeManifest(bin, CHROME_EXT_ID, manifest);
+            writeManifest(bin, CHROME_EXT_ID, manifest, false);
             putWinReg(CHROME_REG_KEY, manifest.toString());
         } else if (MAC) {
             writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, "Library",
-                    "Application Support", "Chromium", "NativeMessagingHosts", MANIFEST_FNAME));
+                    "Application Support", "Chromium", "NativeMessagingHosts", MANIFEST_FNAME), false);
         } else {
             writeManifest(bin, CHROME_EXT_ID, Paths.get(HOME, ".config",
-                    "chromium", "NativeMessagingHosts", MANIFEST_FNAME));
+                    "chromium", "NativeMessagingHosts", MANIFEST_FNAME), false);
         }
     }
 
