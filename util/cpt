@@ -1,0 +1,25 @@
+#!/bin/sh
+IFS=$(printf '\t')
+echo "$1" | nc 127.0.0.1 50000 | while read -r in_f out_f exp_f; do
+	if [ "$in_f" = "timed out" ]; then
+		echo "$in_f"
+		exit 1
+	else
+		printf "$sep"
+		if [ -n "$exp_f" ]; then    # no error
+			cat "$in_f"
+			if diff "$out_f" "$exp_f"; then
+				echo passed
+				cat "$out_f"
+			fi | sed 's/^/  /'
+
+		elif [ -n "$out_f" ]; then  # error, with provided input
+			cat "$out_f"            # input to solution
+			sed 's/^/  /' "$in_f"   # error message
+
+		elif [ -n "$in_f" ]; then   # error, with no input
+			sed 's/^/  /' "$in_f"   # error message
+		fi
+		sep='\n'
+	fi
+done
