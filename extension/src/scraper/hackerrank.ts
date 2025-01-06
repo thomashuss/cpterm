@@ -69,8 +69,8 @@ export class HackerRank extends HasMonaco {
                     () => (tab as HTMLElement).click());
                 const stdin = (content.querySelector(".stdin .lines-container") as OptionalHElement)?.innerText ?? "";
                 const expected = (content.querySelector(".expected-output .lines-container") as OptionalHElement)?.innerText;
-                const stdout = ((content.querySelector(".stdout .lines-container") as OptionalHElement)?.innerText
-                    ?? tab.querySelector("svg[aria-label='Failed']") != null) ? "" : expected;
+                const stdout = (content.querySelector(".stdout .lines-container") as OptionalHElement)?.innerText
+                    ?? (tab.querySelector("svg[aria-label='Failed']") != null ? "" : expected);
                 const stderr = (content.querySelector(".stderr .lines-container") as OptionalHElement)?.innerText;
                 ret[(tab as HTMLElement).innerText] = new TestCase(stdin, stdout, expected, stderr);
             }
