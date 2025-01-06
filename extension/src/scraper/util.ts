@@ -64,9 +64,9 @@ export function firstVisibleSibling(elem: HTMLElement): OptionalHElement {
  * @param timeout wait no longer than this time in milliseconds to resolve promise; rejects on timeout (default 60000)
  * @returns promise
  */
-export async function waitForElement<T>(elem: Node, cb: () => T | null, options?: MutationObserverInit,
-    initCb?: (() => void) | null, timeout?: number): Promise<T> {
-    return new Promise<T>((resolve, reject) => {
+export async function waitForElement<T>(elem: Node, cb: () => T | null | undefined, options?: MutationObserverInit,
+    initCb?: (() => void) | null, timeout?: number): Promise<NonNullable<T>> {
+    return new Promise<NonNullable<T>>((resolve, reject) => {
         const c = cb();
         if (c == null) {
             const t = setTimeout(() => { observer.disconnect(); reject("Timed out"); }, timeout ?? 60000);
