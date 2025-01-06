@@ -81,15 +81,20 @@ Each time you load a page of a supported website, the `Open problem` button will
 appear in the upper-left corner.  `Alt`-`Shift`-`C` is a shortcut for this
 button.  If the page is a problem page, clicking the button will, in this order:
 
-- run the pre-problem script (if enabled)
-- render the problem statement to a file (if enabled);
-- create a new, or read an existing, problem code file;
+- wait for the problem to be scrapeable (the description must be visible);
+- run the [pre-problem script](#hook-scripts) (if enabled)
+- render the [problem statement](#problem-statement-file) to a file (if enabled);
+- create a new, or read an existing, [problem code file](#code-file);
 - listen on the filesystem for changes to the problem code file; and
-- run the post-problem script (if enabled)
+- run the [post-problem script](#hook-scripts) (if enabled)
 
 A problem being _open_ means the [file listener](#code-file) is running for, and
 [submissions](#controlling-cpterm) will be made to, that problem.  Only one
 problem can be opened at a time.
+
+### Configuration
+
+CPTerm is configured using an options page in your browser's extension manager.
 
 ## Files
 
