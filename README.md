@@ -57,6 +57,12 @@ and leave the location as the default unless you know what you are doing.
 
 AMO and Chrome Web Store links may be coming soon.
 
+### Build requirements
+
+- Maven 3.8.7 or newer
+- Node 18.19.0 or newer
+- npm 9.2.0 or newer
+
 ### Build extension
 
 You must have `node` and `npm` installed.  In the `extension` directory, run the
