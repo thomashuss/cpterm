@@ -22,8 +22,7 @@ archive.on("error", (err) => {
 
 const dist = path.resolve(__dirname, "dist");
 const icons = path.resolve(__dirname, "icons");
-const outStream = fs.createWriteStream(path.resolve(dist, `cpterm-${target}.zip`));
-archive.pipe(outStream);
+archive.pipe(fs.createWriteStream(path.resolve(dist, `cpterm-${target}.zip`)));
 archive.glob("*.js", { cwd: dist });
 if (target === "firefox") {
     archive.file(path.resolve(icons, "cpterm-dist.svg"), { name: "cpterm.svg" });
@@ -33,4 +32,3 @@ if (target === "firefox") {
 archive.file(path.resolve(__dirname, `manifest-${target}.json`), { name: "manifest.json" });
 archive.file(path.resolve(__dirname, "src", "options", "options.html"), { name: "options.html" });
 archive.finalize();
-outStream.end();
