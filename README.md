@@ -84,7 +84,7 @@ appear in the upper-left corner.  `Alt`-`Shift`-`C` is a shortcut for this
 button.  If the page is a problem page, clicking the button will, in this order:
 
 - wait for the problem to be scrapeable (the description must be visible);
-- run the [pre-problem script](#hook-scripts) (if enabled)
+- run the [pre-problem script](#hook-scripts) (if enabled);
 - render the [problem statement](#problem-statement-file) to a file (if enabled);
 - create a new, or read an existing, [problem code file](#code-file);
 - listen on the filesystem for changes to the problem code file; and
