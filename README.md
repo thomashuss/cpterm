@@ -74,7 +74,7 @@ This will produce `cpterm-firefox.zip` and `cpterm-chrome.zip` files in the
 
 You must have Maven installed.  In the `host` directory, run:
 ```
-mvn clean build
+mvn clean package
 ```
 
 ## Basic usage
