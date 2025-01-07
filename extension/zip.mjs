@@ -34,7 +34,7 @@ if (target === "firefox" || target === "chrome") {
         }
         manifest.browser_specific_settings = {
             gecko: {
-                id: "cpterm@thomashuss.github.io",
+                id: "cpterm-scraper@thomashuss.github.io",
                 strict_min_version: "128.0"
             }
         };
