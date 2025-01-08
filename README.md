@@ -55,7 +55,9 @@ and leave the location as the default unless you know what you are doing.
 
 ### Install extension
 
-AMO and Chrome Web Store links may be coming soon.
+- Firefox: [Mozilla
+Add-ons](https://addons.mozilla.org/en-US/firefox/addon/cpterm/)
+- Chrome/Chromium: not available on Chrome Web Store due to $5 fee
 
 ### Build requirements
 
