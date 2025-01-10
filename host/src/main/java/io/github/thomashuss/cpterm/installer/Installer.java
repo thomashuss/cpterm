@@ -148,7 +148,7 @@ public class Installer
 
     private static void printInstallUsage()
     {
-        System.out.println("usage: java -jar cpterm.jar -b BROWSER [-b BROWSER...] [-d DIRECTORY]");
+        System.out.println("usage: java -jar cpterm.jar --install -b BROWSER [-b BROWSER...] [-d DIRECTORY]");
         System.out.println("where BROWSER is one of `firefox', `chrome', or `chromium'" +
                 " and DIRECTORY is the install directory (set to default if not specified)");
     }

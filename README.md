@@ -41,7 +41,7 @@ will be used to run the host itself.
 
 Run the command:
 ```
-java -jar cpterm-XXX.jar -b BROWSER [-b BROWSER...] [-d DIRECTORY]
+java -jar cpterm-XXX.jar --install -b BROWSER [-b BROWSER...] [-d DIRECTORY]
 ```
 where BROWSER is one of `firefox`, `chrome`, or `chromium` and DIRECTORY is the
 install directory, set to a reasonable default for your OS if not specified.
