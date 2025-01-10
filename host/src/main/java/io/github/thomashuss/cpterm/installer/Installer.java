@@ -41,7 +41,7 @@ public class Installer
     private static final String MANIFEST_NAME = "io.github.thomashuss.cpterm";
     private static final String MANIFEST_FNAME = MANIFEST_NAME + ".json";
     private static final String DESCRIPTION = "Allows the CPTerm extension to read and write scratch files";
-    private static final String FIREFOX_EXT_ID = "cpterm@thomashuss.github.io";
+    private static final String FIREFOX_EXT_ID = "cpterm-scraper@thomashuss.github.io";
     private static final String CHROME_EXT_ID = "chrome-extension://pfkaacnmmafpmdogookjkmdhepkabbkd/";
     private static final String FIREFOX_REG_KEY = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\" + MANIFEST_NAME;
     private static final String CHROME_REG_KEY = "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\" + MANIFEST_NAME;
