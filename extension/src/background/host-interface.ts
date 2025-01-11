@@ -57,7 +57,7 @@ export class HostInterface {
         if (this.nativePort == nativePort) {
             this.nativePort = null;
         }
-        if (nativePort.error) {
+        if (nativePort.error != null) {
             this.postToCS(new LogEntry(ERROR, nativePort.error.message));
         }
     }
@@ -68,9 +68,6 @@ export class HostInterface {
      */
     private onCSDisconnect(cs: browser.Runtime.Port) {
         this.csPorts.delete(cs);
-        if (this.csPorts.size == 0) {
-            this.end();
-        }
     }
 
     /**
@@ -108,6 +105,7 @@ export class HostInterface {
                 nativePort.postMessage({ type: "setPrefs", prefs: prefs });
             }
             this.nativePort = nativePort;
+            this.setQuitTimeout();
         }
 
         return this.nativePort;
@@ -127,47 +125,42 @@ export class HostInterface {
     }
 
     /**
-     * Post a message to the native messaging host, starting the host if it's not running.
+     * Post a message to the native messaging host, starting the host if it's not running or
+     * keeping it alive if it is.  If the message is a keep-alive, it won't be posted and the
+     * host won't be started if it was stopped.
      * @param cs browser port from which the request originated; used for registering callbacks
      * @param message message
      */
     public postMessage(cs: browser.Runtime.Port, message: Message) {
-        if (!(this.unsetQuitTimeout() && message.type === COMMAND && (message as Command).command === KEEP_ALIVE)) {
+        this.unsetQuitTimeout();
+        if (message.type !== COMMAND || (message as Command).command !== KEEP_ALIVE) {
             this.ensurePort(cs).then((p) => p.postMessage(message));
         }
+        this.setQuitTimeout();
     }
 
     /**
      * Stop the timer to end the host process, if the timer is set.
-     * @returns true if the timer was running and stopped
      */
-    private unsetQuitTimeout(): boolean {
+    private unsetQuitTimeout() {
         if (this.quitTimeout != null) {
             clearTimeout(this.quitTimeout);
-            return true;
+            this.quitTimeout = null;
         }
-        return false;
     }
 
     /**
      * Start a timer to end the host process.
      */
     private setQuitTimeout() {
-        this.quitTimeout = setTimeout(() => {
-            try {
-                this.nativePort?.disconnect();
-            } finally {
-                this.nativePort = null;
-            }
-        }, 10000);
-    }
-
-    /**
-     * Instruct the native messaging process to stop soon, if it's running.
-     */
-    public end() {
-        if (this.nativePort != null) {
-            this.setQuitTimeout();
+        if (this.quitTimeout == null) {
+            this.quitTimeout = setTimeout(() => {
+                try {
+                    this.nativePort?.disconnect();
+                } finally {
+                    this.nativePort = null;
+                }
+            }, 20000);
         }
     }
 }

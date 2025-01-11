@@ -114,10 +114,14 @@ async function sendProblemWhenReady(scraper: Scraper) {
     }
 }
 
+function sendKeepAlive() {
+    document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, { detail: M_KEEP_ALIVE }));
+}
+
 const scraper = getScraper();
 if (scraper != null) {
-    // keep nm host alive in case the kill timer is set
-    document.dispatchEvent(new CustomEvent(FROM_CPTERM_SCRAPER, { detail: M_KEEP_ALIVE }));
+    sendKeepAlive();
+    setInterval(sendKeepAlive, 10000);
     registerBackgroundListener(scraper);
 
     const button = document.createElement("button");
