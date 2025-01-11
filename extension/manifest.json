@@ -2,7 +2,7 @@
   "description": "Interface between competitive programming websites and your code editor",
   "manifest_version": 3,
   "name": "CPTerm",
-  "version": "0.1",
+  "version": "0.1.1",
   "icons": {},
   "content_scripts": [
     {
