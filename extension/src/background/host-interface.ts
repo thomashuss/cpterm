@@ -21,7 +21,7 @@ import browser from "webextension-polyfill";
 
 const NATIVE_NAME = "io.github.thomashuss.cpterm";
 const VERSION = "version";
-const HOST_VERSION = "0.1";
+const HOST_VERSION = "0.2";
 
 interface Version extends Message {
     readonly hostVersion: string;
