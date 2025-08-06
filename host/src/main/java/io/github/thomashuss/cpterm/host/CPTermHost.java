@@ -316,12 +316,10 @@ public class CPTermHost
     throws IOException
     {
         CPTermHost h = new CPTermHost();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(h::quit));
         h.sendVersion();
-        try {
-            h.listen();
-        } finally {
-            h.quit();
-        }
+        h.listen();
     }
 
     /**
